@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="BoxMesh" id="1"]
+size = Vector3(0.18, 0.18, 0.6)
+
+[sub_resource type="CylinderMesh" id="2"]
+top_radius = 0.055
+bottom_radius = 0.055
+height = 0.22
+
+[node name="ViewToolMiner" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = SubResource("1")
+
+[node name="Tip" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.34)
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("2")

@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/controllers/viewmodel_controller.gd" id="1"]
+
+[node name="ViewModelRig" type="Node3D"]
+script = ExtResource("1")
+
+[node name="RigPivot" type="Node3D" parent="."]
+
+[node name="ArmLeft" type="Node3D" parent="RigPivot"]
+
+[node name="ArmLeftMesh" type="MeshInstance3D" parent="RigPivot/ArmLeft"]
+
+[node name="HandLeftMesh" type="MeshInstance3D" parent="RigPivot/ArmLeft"]
+
+[node name="ArmRight" type="Node3D" parent="RigPivot"]
+
+[node name="ArmRightMesh" type="MeshInstance3D" parent="RigPivot/ArmRight"]
+
+[node name="HandRightMesh" type="MeshInstance3D" parent="RigPivot/ArmRight"]
+
+[node name="ToolPivot" type="Node3D" parent="RigPivot/ArmRight"]
+
+[node name="ToolMountPrimary" type="Marker3D" parent="RigPivot/ArmRight/ToolPivot"]
+position = Vector3(0, 0, -0.25)
+
+[node name="ToolMountSecondary" type="Marker3D" parent="RigPivot/ArmRight/ToolPivot"]
+position = Vector3(0, 0.06, -0.1)
+
+[node name="ToolMesh" type="MeshInstance3D" parent="RigPivot/ArmRight/ToolPivot"]
+
+[node name="ToolAccentMesh" type="MeshInstance3D" parent="RigPivot/ArmRight/ToolPivot"]

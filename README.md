@@ -22,7 +22,7 @@ Celadora is an open-source sci-fi fantasy RPG prototype built in Godot 4.3. This
 - `Shift`: Run
 - `Space`: Jump
 - `Mouse`: Look
-- `Left Click`: Primary action (mine/attack)
+- `Left Click`: Swing equipped first-person tool (mine/attack resolves on impact window)
 - `E`: Interact (terminals and interactables)
 - `I`: Toggle Inventory
 - `O`: Toggle Objective Checklist
@@ -41,12 +41,14 @@ HUD notes:
 - Bottom row 2: world status (day/night, biome, Dream Keeper window, next lore marker direction/distance)
 - Bottom row 3: contextual interaction hint (mine/attack/interact target)
 - Center status line: current target integrity/HP
+- First-person viewmodel: arms, hands, and active tool are visible; crafted `Moonblade (Prototype)` auto-equips visually
 - Bottom row 4: system controls (inventory/crafting/lore/market/interact/save/reset)
 - Bottom row 5: movement controls
 - Hit feedback: lightweight red flash when taking damage
 
 ## Gameplay Loop in v0.1
 - Spawn on Celadora with eight visible moons.
+- First-person embodiment: visible arms/hands/tool with motion sway, bob, fatigue shake, and hit kick.
 - Mine dust fragments and energy crystals.
 - Fight Greegion Miner Bots.
 - Craft `Celadora Alloy` and `Moonblade (Prototype)`.
@@ -64,6 +66,7 @@ Objective reliability notes:
 ## Data-Driven Balancing
 All game data is editable JSON under `/data` and loaded at runtime.
 Runtime validation enforces required Celadora IDs, moon count/type coverage, and core recipe/enemy/location contracts.
+First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/data/viewmodel.json`.
 
 ### Add a New Dust Type or Item
 1. Add a new object in `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/data/items.json`.
@@ -86,6 +89,16 @@ Runtime validation enforces required Celadora IDs, moon count/type coverage, and
   - `tile_size`
   - `height_scale`
 - Biome thresholds are in `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/world/world_spawner.gd`.
+
+### Tune First-Person Arms/Tool Feel
+1. Edit `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/data/viewmodel.json`.
+2. Tune:
+   - `base_transform`: camera-relative position/rotation for arms/tool.
+   - `sway`, `bob`, `fatigue`: movement feel and stamina feedback.
+   - `actions.mine` and `actions.attack`: duration + impact timing windows.
+   - `tools.states`: per-tool offsets/colors for `miner` and `moonblade`.
+3. Re-run preview:
+   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/quick_preview.sh 8060`
 
 ## Architecture Summary
 - Autoload singleton: `GameServices`

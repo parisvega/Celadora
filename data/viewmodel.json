@@ -1,0 +1,73 @@
+{
+  "base_transform": {
+    "position": [0.24, -0.24, -0.42],
+    "rotation_deg": [-2.0, 0.0, 0.0]
+  },
+  "sway": {
+    "max_pitch_deg": 1.8,
+    "max_yaw_deg": 2.8,
+    "response": 0.017,
+    "return_speed": 10.0
+  },
+  "bob": {
+    "walk": {"amp_x": 0.012, "amp_y": 0.009, "freq": 8.0},
+    "run": {"amp_x": 0.020, "amp_y": 0.014, "freq": 11.0}
+  },
+  "recoil": {
+    "damage_kick_deg": 2.6,
+    "decay_speed": 8.0
+  },
+  "fatigue": {
+    "start_ratio": 0.35,
+    "shake_pitch_deg": 0.9,
+    "shake_yaw_deg": 0.7,
+    "freq": 16.0
+  },
+  "actions": {
+    "mine": {
+      "duration_sec": 0.34,
+      "impact_time_sec": 0.14,
+      "pitch_kick_deg": -23.0,
+      "yaw_kick_deg": 8.0
+    },
+    "attack": {
+      "duration_sec": 0.30,
+      "impact_time_sec": 0.12,
+      "pitch_kick_deg": -32.0,
+      "yaw_kick_deg": 13.0
+    }
+  },
+  "tools": {
+    "default": "miner",
+    "states": {
+      "none": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation_deg": [0.0, 0.0, 0.0],
+        "base_color": "#00000000",
+        "accent_color": "#00000000"
+      },
+      "miner": {
+        "position": [0.10, -0.05, -0.20],
+        "rotation_deg": [35.0, -18.0, -8.0],
+        "base_color": "#6d7d8a",
+        "accent_color": "#8ed9ff"
+      },
+      "moonblade": {
+        "position": [0.12, -0.11, -0.22],
+        "rotation_deg": [80.0, -15.0, -5.0],
+        "base_color": "#dbedf5",
+        "accent_color": "#b5fff7"
+      }
+    }
+  },
+  "dust_tints": {
+    "blue": "#5d92ff",
+    "green": "#5ed18f",
+    "red": "#ff6f6f",
+    "orange": "#ffad63",
+    "yellow": "#ffd965",
+    "white": "#f2f5ff",
+    "black": "#6a6f85",
+    "silver": "#ced7f3"
+  }
+}

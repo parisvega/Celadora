@@ -5,7 +5,8 @@ const DATA_FILES = {
 	"recipes": "res://data/recipes.json",
 	"enemies": "res://data/enemies.json",
 	"moons": "res://data/moons.json",
-	"locations": "res://data/locations.json"
+	"locations": "res://data/locations.json",
+	"viewmodel": "res://data/viewmodel.json"
 }
 
 const REQUIRED_DUST_IDS = [
@@ -65,6 +66,7 @@ var recipes_by_id: Dictionary = {}
 var enemies_by_id: Dictionary = {}
 var moons: Array = []
 var locations_by_id: Dictionary = {}
+var viewmodel_config: Dictionary = {}
 var validation_errors: Array[String] = []
 var validation_warnings: Array[String] = []
 
@@ -76,18 +78,21 @@ func load_all() -> bool:
 	var recipe_rows: Array = _load_array("recipes")
 	var enemy_rows: Array = _load_array("enemies")
 	var location_rows: Array = _load_array("locations")
+	var viewmodel_dict: Dictionary = _load_dict("viewmodel")
 
 	items_by_id = _index_by_id("items", item_rows)
 	recipes_by_id = _index_by_id("recipes", recipe_rows)
 	enemies_by_id = _index_by_id("enemies", enemy_rows)
 	moons = _load_array("moons")
 	locations_by_id = _index_by_id("locations", location_rows)
+	viewmodel_config = viewmodel_dict
 
 	_validate_items()
 	_validate_recipes()
 	_validate_enemies()
 	_validate_moons()
 	_validate_locations()
+	_validate_viewmodel_config()
 	_validate_cross_references()
 	_emit_validation_report()
 	return validation_errors.is_empty()
@@ -116,6 +121,9 @@ func get_all_items() -> Array:
 func get_all_locations() -> Array:
 	return locations_by_id.values()
 
+func get_viewmodel_config() -> Dictionary:
+	return viewmodel_config.duplicate(true)
+
 func get_validation_report() -> Dictionary:
 	return {
 		"ok": validation_errors.is_empty(),
@@ -136,6 +144,21 @@ func _load_array(key: String) -> Array:
 	if typeof(parsed) != TYPE_ARRAY:
 		_push_error("Data file must contain a JSON array: %s" % path)
 		return []
+	return parsed
+
+func _load_dict(key: String) -> Dictionary:
+	var path: String = DATA_FILES.get(key, "")
+	if path.is_empty():
+		_push_error("Unknown data key: %s" % key)
+		return {}
+	if not FileAccess.file_exists(path):
+		_push_error("Missing data file: %s" % path)
+		return {}
+	var raw_text: String = FileAccess.get_file_as_string(path)
+	var parsed: Variant = JSON.parse_string(raw_text)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		_push_error("Data file must contain a JSON object: %s" % path)
+		return {}
 	return parsed
 
 func _index_by_id(collection_name: String, entries: Array) -> Dictionary:
@@ -277,6 +300,15 @@ func _validate_locations() -> void:
 		for key in ["name", "position", "journal_title", "journal_text"]:
 			if not location.has(key):
 				_push_error("Location '%s' missing field '%s'." % [location_id, key])
+
+func _validate_viewmodel_config() -> void:
+	if viewmodel_config.is_empty():
+		_push_warning("viewmodel.json is empty. First-person viewmodel will use script defaults.")
+		return
+	var actions: Dictionary = viewmodel_config.get("actions", {})
+	for action_name in ["mine", "attack"]:
+		if not actions.has(action_name):
+			_push_warning("viewmodel.json missing actions.%s config." % action_name)
 
 func _validate_cross_references() -> void:
 	for recipe_id in recipes_by_id.keys():

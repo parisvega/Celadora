@@ -38,14 +38,18 @@ jq -e 'map(.dust_type) | sort == ["Black","Blue","Green","Orange","Red","Silver"
 echo "[3/4] Checking required files..."
 required=(
   project.godot
+  data/viewmodel.json
   scenes/Main.tscn
   scenes/world/World.tscn
   scenes/player/Player.tscn
+  scenes/player/ViewModelRig.tscn
+  scenes/player/ViewTool_Miner.tscn
   scenes/ui/HUD.tscn
   scenes/ui/ObjectivePanel.tscn
   scripts/services/game_services.gd
   scripts/services/event_log_service.gd
   scripts/controllers/player_controller.gd
+  scripts/controllers/viewmodel_controller.gd
   scripts/controllers/enemy_controller.gd
 )
 for f in "${required[@]}"; do

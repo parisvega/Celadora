@@ -66,7 +66,7 @@ const LOCATION_SHORT_NAMES = {
 func _ready() -> void:
 	add_to_group("hud")
 	crosshair.text = "+"
-	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Mine/Attack  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
+	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Swing (Mine/Attack)  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
 	movement_label.text = "Movement: W/A/S/D Move  |  Shift Run  |  Space Jump  |  Mouse Look  |  Esc Cursor"
 	compass_label.text = "Facing N"
 	target_status_label.text = ""
@@ -488,6 +488,11 @@ func _update_debug_overlay(delta: float) -> void:
 	lines.append("Lore unlocked: %d/3" % GameServices.lore_journal_service.get_unlocked_ids().size())
 	lines.append("Dream keeper: %s" % dream_text)
 	lines.append("Credits: %d" % GameServices.inventory_service.credits)
+	var viewmodel_tool: String = "none"
+	var viewmodel_node: Node = _player.get_node_or_null("Camera/ViewModelRig")
+	if viewmodel_node != null and viewmodel_node.has_method("get_active_tool"):
+		viewmodel_tool = str(viewmodel_node.get_active_tool())
+	lines.append("Viewmodel tool: %s" % viewmodel_tool)
 	if GameServices.event_log_service != null:
 		var last_event: Dictionary = GameServices.event_log_service.get_last_event()
 		lines.append("Events: %d" % GameServices.event_log_service.get_count())

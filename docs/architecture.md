@@ -17,7 +17,8 @@
 - `NetworkService` + `LocalNetworkService`: future MMO/Nakama insertion point.
 
 ## Core Controllers
-- `PlayerController`: movement, mining/combat interaction, manual save trigger.
+- `PlayerController`: movement, interaction ray, queued action-impact windows, manual save trigger.
+- `ViewModelController`: first-person arms/hands/tool rendering, sway/bob/recoil/fatigue feedback, tool state visuals.
 - `EnemyController`: patrol/aggro/attack lifecycle for Greegion Miner Bots.
 - `WorldSpawner`: deterministic chunked block terrain + biome coloration.
 - `ResourceSpawner`: data-aware resource node placement with guaranteed starter pack near spawn.
@@ -30,6 +31,7 @@ All balance data is loaded at runtime:
 - `data/enemies.json`
 - `data/moons.json`
 - `data/locations.json`
+- `data/viewmodel.json`
 
 ## MMO Expansion Seams
 - Replace `LocalNetworkService` with a Nakama-backed implementation while preserving service signatures.

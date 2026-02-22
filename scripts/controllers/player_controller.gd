@@ -15,6 +15,7 @@ signal damaged(amount: float)
 
 @onready var camera: Camera3D = $Camera
 @onready var interaction_ray: RayCast3D = $Camera/InteractionRay
+@onready var viewmodel: Node = $Camera/ViewModelRig
 
 var max_health: float = 100.0
 var max_stamina: float = 100.0
@@ -31,6 +32,22 @@ var _spawn_position: Vector3
 var _last_interaction_hint: String = ""
 var _last_interaction_signature: String = ""
 
+var _pending_action_kind: String = ""
+var _pending_action_target_id: int = 0
+var _pending_action_payload: Dictionary = {}
+var _pending_action_timer: float = 0.0
+
+const DUST_COLOR_BY_ITEM = {
+	"dust_blue": Color(0.38, 0.62, 1.0),
+	"dust_green": Color(0.36, 0.84, 0.56),
+	"dust_red": Color(0.9, 0.35, 0.35),
+	"dust_orange": Color(0.93, 0.61, 0.31),
+	"dust_yellow": Color(0.92, 0.82, 0.35),
+	"dust_white": Color(0.95, 0.95, 0.98),
+	"dust_black": Color(0.34, 0.36, 0.42),
+	"dust_silver": Color(0.73, 0.77, 0.85)
+}
+
 func _ready() -> void:
 	_setup_input_map()
 	add_to_group("player")
@@ -38,6 +55,9 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if GameServices.inventory_service:
 		GameServices.inventory_service.inventory_changed.connect(_on_inventory_changed)
+	if viewmodel != null and viewmodel.has_signal("action_impact"):
+		viewmodel.action_impact.connect(_on_viewmodel_action_impact)
+	_refresh_viewmodel_state()
 	_emit_stats()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -45,6 +65,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		rotate_y(-event.relative.x * look_sensitivity)
 		camera.rotate_x(-event.relative.y * look_sensitivity)
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-80), deg_to_rad(80))
+		if viewmodel != null and viewmodel.has_method("apply_look_delta"):
+			viewmodel.apply_look_delta(event.relative)
 	elif event.is_action_pressed("toggle_mouse"):
 		_toggle_mouse_capture()
 
@@ -53,6 +75,10 @@ func _physics_process(delta: float) -> void:
 		_mine_cd_left -= delta
 	if _attack_cd_left > 0.0:
 		_attack_cd_left -= delta
+	if _pending_action_kind != "":
+		_pending_action_timer -= delta
+		if _pending_action_timer <= 0.0:
+			_resolve_pending_action()
 
 	if Input.is_action_just_pressed("save_game"):
 		GameServices.save_now(to_save_data())
@@ -90,10 +116,11 @@ func _physics_process(delta: float) -> void:
 
 	var basis = global_transform.basis
 	var direction = (basis.x * movement_input.x + -basis.z * movement_input.y).normalized()
+	var speed_bonus = 1.0 + GameServices.inventory_service.get_modifier_value("move_speed", 0.0)
 	var is_running = Input.is_action_pressed("run") and stamina > 0.0
-	var speed = walk_speed * (1.0 + GameServices.inventory_service.get_modifier_value("move_speed", 0.0))
+	var speed = walk_speed * speed_bonus
 	if is_running:
-		speed = run_speed * (1.0 + GameServices.inventory_service.get_modifier_value("move_speed", 0.0))
+		speed = run_speed * speed_bonus
 		stamina = max(stamina - 18.0 * delta, 0.0)
 
 	velocity.x = direction.x * speed
@@ -101,6 +128,7 @@ func _physics_process(delta: float) -> void:
 
 	_apply_regeneration(delta)
 	_update_interaction_hint()
+	_update_viewmodel_motion(is_running, speed_bonus)
 	move_and_slide()
 	_emit_stats()
 
@@ -125,10 +153,10 @@ func _handle_primary_action() -> void:
 		return
 
 	if collider.has_method("mine"):
-		_try_mine(collider)
+		_begin_mine_action(collider)
 		return
 	if collider.has_method("take_damage"):
-		_try_attack(collider)
+		_begin_attack_action(collider)
 		return
 	if collider.has_method("collect"):
 		collider.collect()
@@ -144,14 +172,73 @@ func _handle_interact() -> void:
 			"target": _target_name(collider)
 		})
 
-func _try_mine(node: Node) -> void:
-	if _mine_cd_left > 0.0:
+func _begin_mine_action(node: Object) -> void:
+	if _mine_cd_left > 0.0 or _pending_action_kind != "":
 		return
-	_mine_cd_left = max(0.08, mining_cooldown * (1.0 - GameServices.inventory_service.get_modifier_value("mining_speed", 0.0)))
-	var mine_power = 1.0 + (GameServices.inventory_service.get_modifier_value("mining_speed", 0.0) * 1.2)
-	var result: Dictionary = node.mine(mine_power)
+	var mining_bonus: float = GameServices.inventory_service.get_modifier_value("mining_speed", 0.0)
+	_mine_cd_left = max(0.08, mining_cooldown * (1.0 - mining_bonus))
+	var mine_power: float = 1.0 + (mining_bonus * 1.2)
+	var impact_time: float = _play_viewmodel_action("mine")
+	_queue_pending_action("mine", node, {
+		"mine_power": mine_power,
+		"queued_from": [global_position.x, global_position.y, global_position.z]
+	}, impact_time)
+
+func _begin_attack_action(enemy: Object) -> void:
+	if _attack_cd_left > 0.0 or _pending_action_kind != "":
+		return
+	_attack_cd_left = attack_cooldown
+	var damage: float = base_damage * (1.0 + GameServices.inventory_service.get_modifier_value("damage_bonus", 0.0))
+	var impact_time: float = _play_viewmodel_action("attack")
+	_queue_pending_action("attack", enemy, {
+		"damage": damage,
+		"queued_from": [global_position.x, global_position.y, global_position.z]
+	}, impact_time)
+
+func _queue_pending_action(action_kind: String, target: Object, payload: Dictionary, delay_sec: float) -> void:
+	if target == null:
+		return
+	_pending_action_kind = action_kind
+	_pending_action_target_id = target.get_instance_id()
+	_pending_action_payload = payload.duplicate(true)
+	_pending_action_timer = max(delay_sec, 0.0)
+	if _pending_action_timer <= 0.0:
+		_resolve_pending_action()
+
+func _resolve_pending_action() -> void:
+	if _pending_action_kind == "":
+		return
+
+	var action_kind: String = _pending_action_kind
+	var target_id: int = _pending_action_target_id
+	var payload: Dictionary = _pending_action_payload.duplicate(true)
+
+	_pending_action_kind = ""
+	_pending_action_target_id = 0
+	_pending_action_payload = {}
+	_pending_action_timer = 0.0
+
+	var target: Object = instance_from_id(target_id)
+	if target == null:
+		return
+
+	match action_kind:
+		"mine":
+			_resolve_mine_action(target, payload)
+		"attack":
+			_resolve_attack_action(target, payload)
+
+func _resolve_mine_action(target: Object, payload: Dictionary) -> void:
+	if not target.has_method("mine"):
+		return
+	if not _target_within_reach(target, 5.6):
+		return
+
+	var mine_power: float = float(payload.get("mine_power", 1.0))
+	var result: Dictionary = target.mine(mine_power)
 	if not result.get("mined", false):
 		return
+
 	var item_id = str(result.get("item_id", ""))
 	var quantity = int(result.get("quantity", 1))
 	var credits_reward = int(result.get("credits", 0))
@@ -159,6 +246,7 @@ func _try_mine(node: Node) -> void:
 		GameServices.inventory_service.add_item(item_id, quantity)
 	if credits_reward > 0:
 		GameServices.inventory_service.add_credits(credits_reward)
+
 	GameServices.log_event("mining.node_mined", {
 		"item_id": item_id,
 		"quantity": quantity,
@@ -166,15 +254,17 @@ func _try_mine(node: Node) -> void:
 		"position": [global_position.x, global_position.y, global_position.z]
 	})
 
-func _try_attack(enemy: Node) -> void:
-	if _attack_cd_left > 0.0:
+func _resolve_attack_action(target: Object, payload: Dictionary) -> void:
+	if not target.has_method("take_damage"):
 		return
-	_attack_cd_left = attack_cooldown
-	var damage = base_damage * (1.0 + GameServices.inventory_service.get_modifier_value("damage_bonus", 0.0))
-	enemy.take_damage(damage)
+	if not _target_within_reach(target, 4.8):
+		return
+
+	var damage: float = float(payload.get("damage", base_damage))
+	target.take_damage(damage)
 	var event_payload: Dictionary = {
 		"damage": damage,
-		"target": enemy.name,
+		"target": target.name,
 		"player_position": [global_position.x, global_position.y, global_position.z]
 	}
 	var event_envelope: Dictionary = GameServices.network_service.wrap_client_event(
@@ -188,6 +278,8 @@ func receive_damage(amount: float) -> void:
 	if amount > 0.0:
 		damaged.emit(amount)
 		GameServices.log_event("combat.player_damaged", {"amount": amount, "shield": shield, "health": health})
+		if viewmodel != null and viewmodel.has_method("notify_damage"):
+			viewmodel.notify_damage(amount)
 	var remaining = amount
 	if shield > 0.0:
 		var absorbed = min(shield, remaining)
@@ -204,6 +296,10 @@ func _respawn() -> void:
 	stamina = max_stamina * 0.7
 	shield = 0.0
 	global_position = _spawn_position
+	_pending_action_kind = ""
+	_pending_action_target_id = 0
+	_pending_action_payload = {}
+	_pending_action_timer = 0.0
 	GameServices.log_event("player.respawned", {"position": [global_position.x, global_position.y, global_position.z]})
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud:
@@ -230,9 +326,11 @@ func load_from_save(payload: Dictionary) -> void:
 	health = clamp(float(payload.get("health", max_health)), 1.0, max_health)
 	stamina = clamp(float(payload.get("stamina", max_stamina)), 0.0, max_stamina)
 	shield = clamp(float(payload.get("shield", shield)), 0.0, max_shield)
+	_refresh_viewmodel_state()
 	_emit_stats()
 
 func _on_inventory_changed() -> void:
+	_refresh_viewmodel_state()
 	_emit_stats()
 
 func _emit_stats() -> void:
@@ -366,3 +464,48 @@ func _skip_time_phase() -> void:
 	if hud:
 		hud.push_message("Time advanced to %.1fh" % new_time)
 	GameServices.log_event("world.time_skipped", {"time_of_day": new_time})
+
+func _play_viewmodel_action(action_name: String) -> float:
+	if viewmodel != null and viewmodel.has_method("play_action"):
+		return float(viewmodel.play_action(action_name))
+	if viewmodel != null and viewmodel.has_method("get_action_impact_time"):
+		return float(viewmodel.get_action_impact_time(action_name))
+	return 0.0
+
+func _on_viewmodel_action_impact(action_name: String) -> void:
+	if _pending_action_kind != action_name:
+		return
+	_resolve_pending_action()
+
+func _update_viewmodel_motion(is_running: bool, speed_bonus: float) -> void:
+	if viewmodel == null or not viewmodel.has_method("set_motion_state"):
+		return
+	var max_speed: float = max(run_speed * speed_bonus, 0.1)
+	var planar_speed: float = Vector2(velocity.x, velocity.z).length()
+	var speed_ratio: float = clamp(planar_speed / max_speed, 0.0, 1.0)
+	viewmodel.set_motion_state(speed_ratio, is_running, is_on_floor(), stamina / max(max_stamina, 0.001))
+
+func _refresh_viewmodel_state() -> void:
+	if viewmodel == null:
+		return
+	var desired_tool: String = "moonblade" if GameServices.inventory_service.get_quantity("moonblade_prototype") > 0 else "miner"
+	if viewmodel.has_method("set_tool"):
+		viewmodel.set_tool(desired_tool)
+	if viewmodel.has_method("set_dust_tint"):
+		viewmodel.set_dust_tint(_get_dominant_dust_color())
+
+func _get_dominant_dust_color() -> Color:
+	var best_color: Color = Color(0.62, 0.78, 1.0)
+	var best_qty: int = -1
+	for dust_item_id in DUST_COLOR_BY_ITEM.keys():
+		var qty: int = GameServices.inventory_service.get_quantity(dust_item_id)
+		if qty > best_qty:
+			best_qty = qty
+			best_color = DUST_COLOR_BY_ITEM[dust_item_id]
+	return best_color
+
+func _target_within_reach(target: Object, max_distance: float) -> bool:
+	if target is Node3D:
+		var target_node: Node3D = target as Node3D
+		return global_position.distance_to(target_node.global_position) <= max_distance
+	return true
