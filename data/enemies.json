@@ -1,0 +1,16 @@
+[
+  {
+    "id": "greegion_miner_bot",
+    "name": "Greegion Miner Bot",
+    "max_hp": 45,
+    "move_speed": 3.8,
+    "attack_damage": 8,
+    "attack_cooldown": 1.2,
+    "aggro_range": 14.0,
+    "patrol_radius": 10.0,
+    "drops": [
+      {"item_id": "bot_scrap", "quantity": 2}
+    ],
+    "credit_reward": 14
+  }
+]

@@ -1,0 +1,78 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/world_spawner.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/world/resource_spawner.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/world/day_night_cycle.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/world/moon_system.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/world/dream_keeper_spawner.gd" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/world/ResourceNode.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/world/DreamKeeper.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/world/PickupItem.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/world/LocationMarker.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/world/GreegionRuins.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/world/GreegionMinerBot.tscn" id="11"]
+
+[sub_resource type="Environment" id="1"]
+background_mode = 2
+background_color = Color(0.0313725, 0.0509804, 0.105882, 1)
+tonemap_mode = 2
+ambient_light_source = 2
+ambient_light_color = Color(0.4, 0.45, 0.5, 1)
+ambient_light_energy = 0.6
+fog_enabled = true
+fog_density = 0.004
+fog_aerial_perspective = 0.45
+
+[node name="World" type="Node3D"]
+
+[node name="WorldSpawner" type="Node3D" parent="."]
+script = ExtResource("1")
+world_radius_tiles = 12
+height_scale = 3.2
+
+[node name="ResourceSpawner" type="Node3D" parent="."]
+script = ExtResource("2")
+world_spawner_path = NodePath("../WorldSpawner")
+resource_scene = ExtResource("6")
+dust_nodes = 28
+crystal_nodes = 12
+
+[node name="DayNightCycle" type="Node3D" parent="."]
+script = ExtResource("3")
+
+[node name="Sun" type="DirectionalLight3D" parent="DayNightCycle"]
+shadow_enabled = true
+light_energy = 1.1
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="DayNightCycle"]
+environment = SubResource("1")
+
+[node name="MoonSystem" type="Node3D" parent="."]
+script = ExtResource("4")
+
+[node name="DreamKeeperSpawner" type="Node3D" parent="."]
+script = ExtResource("5")
+day_night_cycle_path = NodePath("../DayNightCycle")
+dream_keeper_scene = ExtResource("7")
+pickup_scene = ExtResource("8")
+
+[node name="GreegionRuins" parent="." instance=ExtResource("10")]
+position = Vector3(16, 3.5, -12)
+
+[node name="MarkerEnok" parent="." instance=ExtResource("9")]
+position = Vector3(12, 2.0, 10)
+location_id = "enoks_kingdom_ridge"
+
+[node name="MarkerMakuna" parent="." instance=ExtResource("9")]
+position = Vector3(-12, 2.0, -12)
+location_id = "makunas_shore"
+
+[node name="MarkerRuins" parent="." instance=ExtResource("9")]
+position = Vector3(16, 2.0, -12)
+location_id = "greegion_ruins"
+
+[node name="MinerBotA" parent="." instance=ExtResource("11")]
+position = Vector3(8, 6, 6)
+
+[node name="MinerBotB" parent="." instance=ExtResource("11")]
+position = Vector3(-9, 6, -6)

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "alloy_recipe",
+    "name": "Forge Celadora Alloy",
+    "ingredients": {
+      "energy_crystal": 1
+    },
+    "special": {
+      "distinct_dust_count": 2
+    },
+    "outputs": {
+      "alloy": 1
+    },
+    "craft_time_sec": 1.5
+  },
+  {
+    "id": "moonblade_recipe",
+    "name": "Moonblade (Prototype)",
+    "ingredients": {
+      "alloy": 1,
+      "energy_crystal": 1,
+      "dream_seed": 1
+    },
+    "outputs": {
+      "moonblade_prototype": 1
+    },
+    "craft_time_sec": 2.0
+  }
+]

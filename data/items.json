@@ -1,0 +1,145 @@
+[
+  {
+    "id": "dust_blue",
+    "name": "Blue Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "blue"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 6,
+    "description": "Fine cerulean powder harvested from Celadora deposits.",
+    "modifier": {"stamina_regen": 0.1}
+  },
+  {
+    "id": "dust_green",
+    "name": "Green Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "green"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 6,
+    "description": "Bioluminescent residue with regenerative properties.",
+    "modifier": {"health_regen": 0.08}
+  },
+  {
+    "id": "dust_red",
+    "name": "Red Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "red"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 7,
+    "description": "Volatile red particulate that amplifies force output.",
+    "modifier": {"damage_bonus": 0.1}
+  },
+  {
+    "id": "dust_orange",
+    "name": "Orange Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "orange"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 6,
+    "description": "Energetic grains that improve extraction rhythm.",
+    "modifier": {"mining_speed": 0.12}
+  },
+  {
+    "id": "dust_yellow",
+    "name": "Yellow Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "yellow"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 6,
+    "description": "Charged pollen-like dust that lightens movement.",
+    "modifier": {"move_speed": 0.08}
+  },
+  {
+    "id": "dust_white",
+    "name": "White Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "white"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 7,
+    "description": "Prismatic dust that stabilizes defensive fields.",
+    "modifier": {"shield_regen": 0.1}
+  },
+  {
+    "id": "dust_black",
+    "name": "Black Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "black"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 8,
+    "description": "A dense gravitic powder that muffles signatures.",
+    "modifier": {"aggro_radius_multiplier": -0.1}
+  },
+  {
+    "id": "dust_silver",
+    "name": "Silver Moon Dust Fragment",
+    "category": "dust",
+    "tags": ["dust", "silver"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 9,
+    "description": "Reflective lunar residue prized by frontier brokers.",
+    "modifier": {"credit_gain_multiplier": 0.15}
+  },
+  {
+    "id": "energy_crystal",
+    "name": "Energy Crystal",
+    "category": "resource",
+    "tags": ["crystal", "energy"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 18,
+    "description": "Greegion-grade crystalline battery material.",
+    "modifier": {}
+  },
+  {
+    "id": "alloy",
+    "name": "Celadora Alloy",
+    "category": "crafted",
+    "tags": ["alloy"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 40,
+    "description": "A dense composite forged from mixed moon dust.",
+    "modifier": {}
+  },
+  {
+    "id": "moonblade_prototype",
+    "name": "Moonblade (Prototype)",
+    "category": "weapon",
+    "tags": ["moonblade", "prototype"],
+    "stackable": false,
+    "max_stack": 1,
+    "base_value": 240,
+    "description": "A prototype blade rumored to react to hidden Celadora rites.",
+    "modifier": {"damage_bonus": 0.2}
+  },
+  {
+    "id": "dream_seed",
+    "name": "Dream Seed",
+    "category": "mystic",
+    "tags": ["dream", "rare"],
+    "stackable": true,
+    "max_stack": 99,
+    "base_value": 95,
+    "description": "Left behind by a Dream Keeper at nightfall.",
+    "modifier": {"stamina_regen": 0.05, "health_regen": 0.05}
+  },
+  {
+    "id": "bot_scrap",
+    "name": "Greegion Bot Scrap",
+    "category": "salvage",
+    "tags": ["greegion", "salvage"],
+    "stackable": true,
+    "max_stack": 999,
+    "base_value": 16,
+    "description": "Recovered components from Miner Bots.",
+    "modifier": {}
+  }
+]

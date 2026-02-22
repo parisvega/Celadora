@@ -1,0 +1,74 @@
+[
+  {
+    "id": "moon_blue",
+    "display_name": "Astra Blue",
+    "dust_type": "Blue",
+    "color": "#5AA9FF",
+    "orbit_radius": 70.0,
+    "orbit_speed": 0.06,
+    "scale": 1.8
+  },
+  {
+    "id": "moon_green",
+    "display_name": "Viridia",
+    "dust_type": "Green",
+    "color": "#61D095",
+    "orbit_radius": 82.0,
+    "orbit_speed": 0.05,
+    "scale": 1.5
+  },
+  {
+    "id": "moon_red",
+    "display_name": "Kharon Red",
+    "dust_type": "Red",
+    "color": "#E05A5A",
+    "orbit_radius": 92.0,
+    "orbit_speed": 0.042,
+    "scale": 1.6
+  },
+  {
+    "id": "moon_orange",
+    "display_name": "Emberline",
+    "dust_type": "Orange",
+    "color": "#E89A4C",
+    "orbit_radius": 102.0,
+    "orbit_speed": 0.038,
+    "scale": 1.4
+  },
+  {
+    "id": "moon_yellow",
+    "display_name": "Solmere",
+    "dust_type": "Yellow",
+    "color": "#EEDB60",
+    "orbit_radius": 112.0,
+    "orbit_speed": 0.032,
+    "scale": 1.7
+  },
+  {
+    "id": "moon_white",
+    "display_name": "Ivora",
+    "dust_type": "White",
+    "color": "#F3F5FF",
+    "orbit_radius": 122.0,
+    "orbit_speed": 0.027,
+    "scale": 1.9
+  },
+  {
+    "id": "moon_black",
+    "display_name": "Umber Veil",
+    "dust_type": "Black",
+    "color": "#2E3138",
+    "orbit_radius": 132.0,
+    "orbit_speed": 0.023,
+    "scale": 2.1
+  },
+  {
+    "id": "moon_silver",
+    "display_name": "Silvarc",
+    "dust_type": "Silver",
+    "color": "#C7CFDB",
+    "orbit_radius": 142.0,
+    "orbit_speed": 0.019,
+    "scale": 2.3
+  }
+]

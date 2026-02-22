@@ -1,0 +1,23 @@
+[
+  {
+    "id": "enoks_kingdom_ridge",
+    "name": "Enok's Kingdom Ridge",
+    "position": [12.0, 4.0, 10.0],
+    "journal_title": "Enok's Kingdom Ridge",
+    "journal_text": "Old survey channels identify this ridge as the first place Enok declared a united frontier. The wind still carries coded pings from buried beacons."
+  },
+  {
+    "id": "makunas_shore",
+    "name": "Makuna's Shore",
+    "position": [-12.0, 3.0, -12.0],
+    "journal_title": "Makuna's Shore",
+    "journal_text": "Makuna's tidal lab once refined moon dust into stable forms. Shoreline scanners still detect dormant fabrication grids beneath the sand."
+  },
+  {
+    "id": "greegion_ruins",
+    "name": "Greegion Ruins",
+    "position": [16.0, 5.0, -12.0],
+    "journal_title": "Greegion Ruins",
+    "journal_text": "A sealed Greegion mining cathedral. Dream Keepers avoid it, and local handlers report Shadow King glyphs flickering on inactive terminals."
+  }
+]

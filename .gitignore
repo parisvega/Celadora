@@ -1,0 +1,12 @@
+# Godot editor/cache artifacts
+.godot/
+
+# Local preview/export artifacts
+build/web/
+
+# macOS
+.DS_Store
+
+# Local run state
+*.log
+*.pid

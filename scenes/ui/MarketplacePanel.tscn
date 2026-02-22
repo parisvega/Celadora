@@ -1,0 +1,64 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/marketplace_panel_controller.gd" id="1"]
+
+[node name="MarketplacePanel" type="Panel"]
+custom_minimum_size = Vector2(500, 450)
+position = Vector2(390, 120)
+size = Vector2(500, 450)
+script = ExtResource("1")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="VBox"]
+text = "Marketplace"
+
+[node name="Listings" type="ItemList" parent="VBox"]
+custom_minimum_size = Vector2(0, 180)
+size_flags_vertical = 3
+
+[node name="Status" type="Label" parent="VBox"]
+text = ""
+
+[node name="BuyControls" type="HBoxContainer" parent="VBox"]
+
+[node name="BuyQty" type="SpinBox" parent="VBox/BuyControls"]
+custom_minimum_size = Vector2(90, 0)
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+
+[node name="BuyButton" type="Button" parent="VBox/BuyControls"]
+text = "Buy"
+
+[node name="RefreshButton" type="Button" parent="VBox/BuyControls"]
+text = "Refresh"
+
+[node name="SellControls" type="HBoxContainer" parent="VBox"]
+
+[node name="SellItemOption" type="OptionButton" parent="VBox/SellControls"]
+size_flags_horizontal = 3
+
+[node name="SellQty" type="SpinBox" parent="VBox/SellControls"]
+custom_minimum_size = Vector2(80, 0)
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+
+[node name="SellPrice" type="SpinBox" parent="VBox/SellControls"]
+custom_minimum_size = Vector2(90, 0)
+min_value = 1.0
+max_value = 999.0
+value = 10.0
+
+[node name="SellButton" type="Button" parent="VBox/SellControls"]
+text = "List Item"
