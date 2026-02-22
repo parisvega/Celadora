@@ -26,6 +26,7 @@ This playbook is optimized for human developers and AI agents collaborating on r
 - [ ] Start preview with `scripts/dev/run_web_preview.sh 8060`
 - [ ] Verify objective row + world status target + interaction hint + world visibility in browser
 - [ ] Verify Dream status transitions (`Dormant` -> `ETA`/`Present`) and seed drop loop at night
+- [ ] Verify compass bearings + marker beacon visibility + debug overlay (`F3`)
 - [ ] Update docs/README if behavior or controls changed
 
 ## Fast Commands

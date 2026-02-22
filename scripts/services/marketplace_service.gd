@@ -51,6 +51,14 @@ func buy(listing_id: String, quantity: int) -> Dictionary:
 			_listings.remove_at(i)
 		else:
 			_listings[i] = listing
+		var buy_event: Dictionary = _network_service.wrap_client_event("market.buy", {
+			"listing_id": listing_id,
+			"item_id": item_id,
+			"quantity": quantity,
+			"unit_price": unit_price,
+			"total": total
+		})
+		_network_service.submit_market_order(buy_event)
 		listings_updated.emit()
 		var result = {"ok": true, "reason": "Purchased %d x %s" % [quantity, item_id]}
 		transaction_completed.emit(result)
@@ -76,6 +84,13 @@ func sell(item_id: String, quantity: int, unit_price: int) -> Dictionary:
 		"seller": "Player"
 	}
 	_listings.append(listing)
+	var sell_event: Dictionary = _network_service.wrap_client_event("market.sell", {
+		"listing_id": listing["id"],
+		"item_id": item_id,
+		"quantity": quantity,
+		"unit_price": unit_price
+	})
+	_network_service.submit_market_order(sell_event)
 	listings_updated.emit()
 	var result = {"ok": true, "reason": "Listed %d x %s" % [quantity, item_id], "listing": listing}
 	transaction_completed.emit(result)

@@ -157,11 +157,16 @@ func _try_attack(enemy: Node) -> void:
 	_attack_cd_left = attack_cooldown
 	var damage = base_damage * (1.0 + GameServices.inventory_service.get_modifier_value("damage_bonus", 0.0))
 	enemy.take_damage(damage)
-	GameServices.network_service.submit_combat_event({
-		"type": "player_attack",
+	var event_payload: Dictionary = {
 		"damage": damage,
-		"target": enemy.name
-	})
+		"target": enemy.name,
+		"player_position": [global_position.x, global_position.y, global_position.z]
+	}
+	var event_envelope: Dictionary = GameServices.network_service.wrap_client_event(
+		"combat.player_attack",
+		event_payload
+	)
+	GameServices.network_service.submit_combat_event(event_envelope)
 
 func receive_damage(amount: float) -> void:
 	if amount > 0.0:
@@ -233,6 +238,7 @@ func _setup_input_map() -> void:
 	_bind_action("toggle_market", KEY_M)
 	_bind_action("save_game", KEY_F5)
 	_bind_action("reset_progress", KEY_F9)
+	_bind_action("toggle_debug", KEY_F3)
 	_bind_action("toggle_mouse", KEY_ESCAPE)
 
 	if not InputMap.has_action("primary_action"):

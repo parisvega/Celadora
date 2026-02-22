@@ -30,9 +30,11 @@ Celadora is an open-source sci-fi fantasy RPG prototype built in Godot 4.3. This
 - `M`: Toggle Marketplace
 - `F5`: Manual save
 - `F9`: Reset local progress (save + inventory + lore + market state)
+- `F3`: Toggle debug overlay (FPS/position/biome/objective/dream status)
 - `Esc`: Toggle mouse capture
 
 HUD notes:
+- Top row: compass and marker bearings
 - Bottom row 1: current objective progression
 - Bottom row 2: world status (day/night, biome, Dream Keeper window, next lore marker direction/distance)
 - Bottom row 3: contextual interaction hint (mine/attack/interact target)
@@ -52,6 +54,7 @@ HUD notes:
 Objective reliability notes:
 - Starter resource cache now spawns near the initial area (multiple dust types + energy crystals).
 - Dream Keeper now guarantees at least one night encounter after a short delay if you still need a `Dream Seed`.
+- Lore markers now use taller pulsing beacons and switch to completion tint once unlocked.
 
 ## Data-Driven Balancing
 All game data is editable JSON under `/data` and loaded at runtime.

@@ -25,6 +25,48 @@ offset_right = 540.0
 offset_bottom = 38.0
 text = ""
 
+[node name="CompassLabel" type="Label" parent="."]
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 14.0
+offset_right = 360.0
+offset_bottom = 38.0
+grow_horizontal = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+
+[node name="DebugPanel" type="Panel" parent="."]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -350.0
+offset_top = 44.0
+offset_right = -16.0
+offset_bottom = 264.0
+grow_horizontal = 0
+
+[node name="DebugVBox" type="VBoxContainer" parent="DebugPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="DebugTitle" type="Label" parent="DebugPanel/DebugVBox"]
+text = "Debug Overlay (F3)"
+
+[node name="DebugBody" type="RichTextLabel" parent="DebugPanel/DebugVBox"]
+bbcode_enabled = false
+fit_content = true
+scroll_active = false
+text = ""
+
 [node name="HelpLabel" type="Label" parent="."]
 anchors_preset = 12
 anchor_top = 1.0
