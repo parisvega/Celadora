@@ -44,6 +44,8 @@ This playbook is optimized for human developers and AI agents collaborating on r
   - `scripts/dev/stop_web_preview.sh`
 - Smoke check:
   - `scripts/dev/smoke_check.sh`
+- Full QA agent run (writes reports to `docs/reports`):
+  - `scripts/qa/run_qa_agent.sh`
 
 ## Current UX Safety Nets
 - Web renderer compatibility mode for browser stability.

@@ -117,6 +117,11 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/stop_web_preview.sh`
 - Run smoke checks:
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/smoke_check.sh`
+- Run automated QA agent (headless + report files):
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/qa/run_qa_agent.sh`
+  - Outputs:
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.md`
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.json`
 
 ## AI Agent Workflow (AX)
 - See:

@@ -139,22 +139,22 @@ func get_active_tool() -> String:
 
 func _build_geometry() -> void:
 	var arm_mesh: BoxMesh = BoxMesh.new()
-	arm_mesh.size = Vector3(0.18, 0.16, 0.62)
+	arm_mesh.size = Vector3(0.2, 0.18, 0.7)
 	arm_left_mesh.mesh = arm_mesh
 	arm_right_mesh.mesh = arm_mesh
 
 	var hand_mesh: SphereMesh = SphereMesh.new()
-	hand_mesh.radius = 0.11
-	hand_mesh.height = 0.22
+	hand_mesh.radius = 0.12
+	hand_mesh.height = 0.24
 	hand_left_mesh.mesh = hand_mesh
 	hand_right_mesh.mesh = hand_mesh
 
-	arm_left_root.position = Vector3(-0.16, -0.21, -0.26)
-	arm_right_root.position = Vector3(0.18, -0.22, -0.28)
-	hand_left_mesh.position = Vector3(0.0, -0.02, -0.32)
-	hand_right_mesh.position = Vector3(0.0, -0.02, -0.32)
+	arm_left_root.position = Vector3(-0.2, -0.11, -0.3)
+	arm_right_root.position = Vector3(0.22, -0.13, -0.32)
+	hand_left_mesh.position = Vector3(0.0, -0.02, -0.38)
+	hand_right_mesh.position = Vector3(0.0, -0.02, -0.38)
 
-	_skin_material = _build_material(Color(0.87, 0.74, 0.64, 1.0), false)
+	_skin_material = _build_material(Color(0.96, 0.84, 0.72, 1.0), true)
 	_tool_base_material = _build_material(Color(0.45, 0.5, 0.55, 1.0), true)
 	_tool_accent_material = _build_material(Color(0.56, 0.85, 1.0, 1.0), true)
 
@@ -199,8 +199,8 @@ func _apply_viewmodel_layers() -> void:
 
 func _set_default_pose() -> void:
 	rig_pivot.position = _vec3_from_value(
-		_config_get(["base_transform", "position"], [0.24, -0.24, -0.42]),
-		Vector3(0.24, -0.24, -0.42)
+		_config_get(["base_transform", "position"], [0.24, -0.16, -0.42]),
+		Vector3(0.24, -0.16, -0.42)
 	)
 	rig_pivot.rotation_degrees = _vec3_from_value(
 		_config_get(["base_transform", "rotation_deg"], [-2.0, 0.0, 0.0]),
@@ -266,11 +266,12 @@ func _update_action_timing(delta: float) -> void:
 
 func _update_material_feedback(_delta: float) -> void:
 	if _skin_material != null:
-		var skin_color: Color = Color(0.87, 0.74, 0.64, 1.0)
-		skin_color = skin_color.lerp(Color(1.0, 0.35, 0.35, 1.0), clamp(_damage_kick * 0.25, 0.0, 0.6))
+		var skin_color: Color = Color(0.96, 0.84, 0.72, 1.0)
+		skin_color = skin_color.lerp(Color(1.0, 0.4, 0.4, 1.0), clamp(_damage_kick * 0.2, 0.0, 0.45))
 		_skin_material.albedo_color = skin_color
+		_skin_material.emission = skin_color * 0.22
 	if _tool_base_material != null:
-		_tool_base_material.emission = _tool_base_material.albedo_color * 0.18
+		_tool_base_material.emission = _tool_base_material.albedo_color * 0.22
 	if _tool_accent_material != null:
 		var pulse: float = 0.3 + 0.2 * (sin(_time * 4.0) * 0.5 + 0.5)
 		_tool_accent_material.emission = _tool_accent_material.albedo_color * pulse
@@ -294,10 +295,11 @@ func _build_material(color_value: Color, emission_enabled: bool) -> StandardMate
 	material.albedo_color = color_value
 	material.metallic = 0.08
 	material.roughness = 0.42
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.no_depth_test = true
 	material.emission_enabled = emission_enabled
 	if emission_enabled:
-		material.emission = color_value * 0.2
+		material.emission = color_value * 0.22
 	return material
 
 func _load_config() -> void:
@@ -321,7 +323,7 @@ func _load_config() -> void:
 
 func _default_config() -> Dictionary:
 	return {
-		"base_transform": {"position": [0.24, -0.24, -0.42], "rotation_deg": [-2.0, 0.0, 0.0]},
+		"base_transform": {"position": [0.24, -0.16, -0.42], "rotation_deg": [-2.0, 0.0, 0.0]},
 		"sway": {"max_pitch_deg": 1.8, "max_yaw_deg": 2.8, "response": 0.017, "return_speed": 10.0},
 		"bob": {
 			"walk": {"amp_x": 0.012, "amp_y": 0.009, "freq": 8.0},
@@ -330,8 +332,8 @@ func _default_config() -> Dictionary:
 		"recoil": {"damage_kick_deg": 2.6, "decay_speed": 8.0},
 		"fatigue": {"start_ratio": 0.35, "shake_pitch_deg": 0.9, "shake_yaw_deg": 0.7, "freq": 16.0},
 		"actions": {
-			"mine": {"duration_sec": 0.34, "impact_time_sec": 0.14, "pitch_kick_deg": -23.0, "yaw_kick_deg": 8.0},
-			"attack": {"duration_sec": 0.30, "impact_time_sec": 0.12, "pitch_kick_deg": -32.0, "yaw_kick_deg": 13.0}
+			"mine": {"duration_sec": 0.28, "impact_time_sec": 0.11, "pitch_kick_deg": -36.0, "yaw_kick_deg": 14.0},
+			"attack": {"duration_sec": 0.26, "impact_time_sec": 0.10, "pitch_kick_deg": -52.0, "yaw_kick_deg": 20.0}
 		},
 		"tools": {"default": "miner", "states": {}}
 	}

@@ -1,0 +1,46 @@
+{
+  "timestamp_utc": "2026-02-22T21:21:30Z",
+  "build_url": "http://127.0.0.1:8060/?v=1771795231&qa=visibility",
+  "screenshots": {
+    "visible_arms": "/var/folders/m3/2rmjddws1jj9nm97jmjbm2kh0000gn/T/playwright-mcp-output/1771741901894/page-2026-02-22T21-21-04-378Z.png"
+  },
+  "checks": [
+    {
+      "id": "world_not_black",
+      "status": "pass",
+      "metrics": {
+        "full_non_black_ratio": 0.44312711144437755,
+        "full_mean_brightness": 0.2269610508689258
+      }
+    },
+    {
+      "id": "arms_visible_in_first_person",
+      "status": "pass",
+      "metrics": {
+        "lower_center_non_black_ratio": 0.95013454884947,
+        "lower_center_mean_brightness": 0.5259406305217876,
+        "lower_center_colorful_ratio": 0.4002141798011972
+      }
+    },
+    {
+      "id": "movement_changes_frame",
+      "status": "pass",
+      "metrics": {
+        "changed_ratio": 0.27674104371325275,
+        "mean_abs_diff": 0.04083679607523396
+      }
+    },
+    {
+      "id": "swing_visual_change_via_browser_input",
+      "status": "inconclusive",
+      "metrics": {
+        "changed_ratio": 0.006756016506591681,
+        "mean_abs_diff": 0.0033268577732620316
+      },
+      "note": "Playwright browser session reports pointer-lock restrictions; direct click-driven swing detection is not reliable in this environment."
+    }
+  ],
+  "console_warnings": [
+    "The root document of this element is not valid for pointer lock."
+  ]
+}

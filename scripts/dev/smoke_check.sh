@@ -59,7 +59,7 @@ done
 echo "[4/4] Checking res:// reference targets..."
 while IFS= read -r path; do
   rel="${path#res://}"
-  test -f "$rel" || { echo "Missing target: $path"; exit 1; }
+  test -e "$rel" || { echo "Missing target: $path"; exit 1; }
 done < <(rg --no-filename -o "res://[^\"' ]+" \
   -g "*.godot" -g "*.tscn" -g "*.gd" \
   project.godot scenes scripts | sort -u)

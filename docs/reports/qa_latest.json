@@ -1,0 +1,116 @@
+{
+  "checks": [
+    {
+      "details": {
+        "path": "res://scenes/Main.tscn"
+      },
+      "id": "main_scene_loads",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "hud": true,
+        "player": true,
+        "world": true
+      },
+      "id": "main_nodes_present",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "camera": true,
+        "viewmodel": true
+      },
+      "id": "camera_and_viewmodel_present",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "cull_mask": 3
+      },
+      "id": "camera_renders_viewmodel_layer",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "arm_left": true,
+        "arm_right": true,
+        "hand_left": true,
+        "hand_right": true,
+        "tool_mesh": true
+      },
+      "id": "viewmodel_meshes_ready",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "shading_mode": 0
+      },
+      "id": "viewmodel_unshaded_material",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "active_tool": "miner"
+      },
+      "id": "viewmodel_has_active_tool",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "before": [
+          30.0000019073486,
+          -14,
+          -6
+        ],
+        "delta": 17.3356037139893,
+        "during": [
+          13.8431377410889,
+          -7.71677494049072,
+          -6
+        ]
+      },
+      "id": "viewmodel_mine_action_animates",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "moon_children": 8
+      },
+      "id": "moon_system_spawns_8",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "required_items_loaded",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "viewmodel_config_loaded",
+      "ok": true,
+      "severity": "critical"
+    }
+  ],
+  "ended_at": "2026-02-22T21:24:32",
+  "started_at": "2026-02-22T21:24:31",
+  "summary": {
+    "failed": 0,
+    "passed": 11,
+    "total": 11
+  }
+}
