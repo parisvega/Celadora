@@ -20,7 +20,9 @@ var _objective_state: Dictionary = {}
 var _last_world_status_refresh: float = 0.0
 var _day_night_cycle: Node = null
 var _world_spawner: Node = null
+var _dream_keeper_spawner: Node = null
 var _damage_flash_alpha: float = 0.0
+var _all_objectives_announced: bool = false
 
 const OBJECTIVE_ORDER = [
 	"collect_dust",
@@ -217,6 +219,12 @@ func _update_objectives(announce: bool) -> void:
 			break
 
 	objective_label.text = "Objective %d/%d: %s" % [completed_count, OBJECTIVE_ORDER.size(), next_objective]
+	if completed_count >= OBJECTIVE_ORDER.size():
+		if announce and not _all_objectives_announced:
+			push_message("All objectives complete: Celadora v0.1 secured.")
+		_all_objectives_announced = true
+	else:
+		_all_objectives_announced = false
 
 func _is_objective_complete(objective_id: String) -> bool:
 	match objective_id:
@@ -250,6 +258,7 @@ func _get_item_count_by_tag(tag: String) -> int:
 func _cache_world_refs() -> void:
 	_day_night_cycle = get_tree().get_first_node_in_group("day_night")
 	_world_spawner = get_tree().get_first_node_in_group("world_spawner")
+	_dream_keeper_spawner = get_tree().get_first_node_in_group("dream_keeper_spawner")
 
 func _update_world_status(delta: float) -> void:
 	_last_world_status_refresh += delta
@@ -260,7 +269,7 @@ func _update_world_status(delta: float) -> void:
 	if _player == null:
 		world_status_label.text = "World: waiting for player..."
 		return
-	if _day_night_cycle == null or _world_spawner == null:
+	if _day_night_cycle == null or _world_spawner == null or _dream_keeper_spawner == null:
 		_cache_world_refs()
 
 	var time_of_day: float = 0.0
@@ -275,6 +284,20 @@ func _update_world_status(delta: float) -> void:
 			is_night = (time_of_day < 6.0 or time_of_day >= 18.0)
 		phase_text = "Night" if is_night else "Day"
 		dream_text = "Active" if is_night else "Dormant"
+
+	if _dream_keeper_spawner != null and _dream_keeper_spawner.has_method("get_status"):
+		var dream_status: Dictionary = _dream_keeper_spawner.get_status()
+		var dream_night: bool = bool(dream_status.get("is_night", phase_text == "Night"))
+		var dream_active: bool = bool(dream_status.get("active", false))
+		var dream_eta: float = float(dream_status.get("eta_sec", -1.0))
+		if not dream_night:
+			dream_text = "Dormant"
+		elif dream_active:
+			dream_text = "Present"
+		elif dream_eta >= 0.0:
+			dream_text = "ETA %ds" % int(ceil(dream_eta))
+		else:
+			dream_text = "Searching"
 
 	var biome_text: String = "Unknown"
 	if _world_spawner != null and _world_spawner.has_method("get_biome_name_at_position"):

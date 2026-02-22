@@ -49,6 +49,10 @@ HUD notes:
 - Encounter rare Dream Keepers at night for `Dream Seed` drops.
 - Use local marketplace listings with Celador Credits.
 
+Objective reliability notes:
+- Starter resource cache now spawns near the initial area (multiple dust types + energy crystals).
+- Dream Keeper now guarantees at least one night encounter after a short delay if you still need a `Dream Seed`.
+
 ## Data-Driven Balancing
 All game data is editable JSON under `/data` and loaded at runtime.
 Runtime validation enforces required Celadora IDs, moon count/type coverage, and core recipe/enemy/location contracts.

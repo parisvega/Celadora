@@ -25,6 +25,7 @@ This playbook is optimized for human developers and AI agents collaborating on r
 - [ ] If gameplay/UI changed, run `scripts/dev/export_web.sh`
 - [ ] Start preview with `scripts/dev/run_web_preview.sh 8060`
 - [ ] Verify objective row + world status target + interaction hint + world visibility in browser
+- [ ] Verify Dream status transitions (`Dormant` -> `ETA`/`Present`) and seed drop loop at night
 - [ ] Update docs/README if behavior or controls changed
 
 ## Fast Commands

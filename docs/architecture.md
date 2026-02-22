@@ -19,7 +19,8 @@
 - `PlayerController`: movement, mining/combat interaction, manual save trigger.
 - `EnemyController`: patrol/aggro/attack lifecycle for Greegion Miner Bots.
 - `WorldSpawner`: deterministic chunked block terrain + biome coloration.
-- `ResourceSpawner`: data-aware resource node placement.
+- `ResourceSpawner`: data-aware resource node placement with guaranteed starter pack near spawn.
+- `DreamKeeperSpawner`: night-gated encounter scheduler with guaranteed first-night seed access path.
 
 ## Data-Driven Contracts
 All balance data is loaded at runtime:
