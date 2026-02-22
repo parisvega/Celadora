@@ -2,6 +2,7 @@ extends CharacterBody3D
 
 signal stats_updated
 signal interaction_hint_changed(text: String)
+signal interaction_target_changed(status: Dictionary)
 signal damaged(amount: float)
 
 @export var walk_speed: float = 5.2
@@ -28,6 +29,7 @@ var _mine_cd_left: float = 0.0
 var _attack_cd_left: float = 0.0
 var _spawn_position: Vector3
 var _last_interaction_hint: String = ""
+var _last_interaction_signature: String = ""
 
 func _ready() -> void:
 	_setup_input_map()
@@ -54,15 +56,19 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("save_game"):
 		GameServices.save_now(to_save_data())
+		GameServices.log_event("player.manual_save", {"position": [global_position.x, global_position.y, global_position.z]})
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud:
 			hud.push_message("Game saved.")
 	if Input.is_action_just_pressed("reset_progress"):
 		var reset_result: Dictionary = GameServices.reset_local_progress()
+		GameServices.log_event("player.progress_reset", {"ok": reset_result.get("ok", false)})
 		_respawn()
 		var hud_reset = get_tree().get_first_node_in_group("hud")
 		if hud_reset:
 			hud_reset.push_message(str(reset_result.get("reason", "Reset complete.")))
+	if Input.is_action_just_pressed("skip_time"):
+		_skip_time_phase()
 
 	if Input.is_action_just_pressed("interact"):
 		_handle_interact()
@@ -134,6 +140,9 @@ func _handle_interact() -> void:
 	var collider = interaction_ray.get_collider()
 	if collider and collider.has_method("interact"):
 		collider.interact(self)
+		GameServices.log_event("player.interact", {
+			"target": _target_name(collider)
+		})
 
 func _try_mine(node: Node) -> void:
 	if _mine_cd_left > 0.0:
@@ -150,6 +159,12 @@ func _try_mine(node: Node) -> void:
 		GameServices.inventory_service.add_item(item_id, quantity)
 	if credits_reward > 0:
 		GameServices.inventory_service.add_credits(credits_reward)
+	GameServices.log_event("mining.node_mined", {
+		"item_id": item_id,
+		"quantity": quantity,
+		"credits": credits_reward,
+		"position": [global_position.x, global_position.y, global_position.z]
+	})
 
 func _try_attack(enemy: Node) -> void:
 	if _attack_cd_left > 0.0:
@@ -167,10 +182,12 @@ func _try_attack(enemy: Node) -> void:
 		event_payload
 	)
 	GameServices.network_service.submit_combat_event(event_envelope)
+	GameServices.log_event("combat.player_attack", event_payload)
 
 func receive_damage(amount: float) -> void:
 	if amount > 0.0:
 		damaged.emit(amount)
+		GameServices.log_event("combat.player_damaged", {"amount": amount, "shield": shield, "health": health})
 	var remaining = amount
 	if shield > 0.0:
 		var absorbed = min(shield, remaining)
@@ -187,10 +204,11 @@ func _respawn() -> void:
 	stamina = max_stamina * 0.7
 	shield = 0.0
 	global_position = _spawn_position
+	GameServices.log_event("player.respawned", {"position": [global_position.x, global_position.y, global_position.z]})
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud:
 		hud.push_message("You were downed and reconstructed at spawn.")
-	_set_interaction_hint("")
+	_set_interaction_hint("", {})
 
 func set_spawn_position(pos: Vector3) -> void:
 	_spawn_position = pos
@@ -233,11 +251,13 @@ func _setup_input_map() -> void:
 	_bind_action("run", KEY_SHIFT)
 	_bind_action("interact", KEY_E)
 	_bind_action("toggle_inventory", KEY_I)
+	_bind_action("toggle_objectives", KEY_O)
 	_bind_action("toggle_crafting", KEY_C)
 	_bind_action("toggle_journal", KEY_J)
 	_bind_action("toggle_market", KEY_M)
 	_bind_action("save_game", KEY_F5)
 	_bind_action("reset_progress", KEY_F9)
+	_bind_action("skip_time", KEY_F8)
 	_bind_action("toggle_debug", KEY_F3)
 	_bind_action("toggle_mouse", KEY_ESCAPE)
 
@@ -272,32 +292,32 @@ func _mouse_button_assigned(action: StringName, button: MouseButton) -> bool:
 
 func _update_interaction_hint() -> void:
 	if interaction_ray == null:
-		_set_interaction_hint("")
+		_set_interaction_hint("", {})
 		return
 	interaction_ray.force_raycast_update()
 	if not interaction_ray.is_colliding():
-		_set_interaction_hint("")
+		_set_interaction_hint("", {})
 		return
 
 	var collider = interaction_ray.get_collider()
 	if collider == null:
-		_set_interaction_hint("")
+		_set_interaction_hint("", {})
 		return
 
 	if collider.has_method("mine"):
-		_set_interaction_hint("Left Click Mine %s" % _target_name(collider))
+		_set_interaction_hint("Left Click Mine %s" % _target_name(collider), _build_status_from_collider(collider, "Mine"))
 		return
 	if collider.has_method("take_damage"):
-		_set_interaction_hint("Left Click Attack %s" % _target_name(collider))
+		_set_interaction_hint("Left Click Attack %s" % _target_name(collider), _build_status_from_collider(collider, "Attack"))
 		return
 	if collider.has_method("interact"):
-		_set_interaction_hint("E Interact %s" % _target_name(collider))
+		_set_interaction_hint("E Interact %s" % _target_name(collider), _build_status_from_collider(collider, "Interact"))
 		return
 	if collider.has_method("collect"):
-		_set_interaction_hint("E Collect %s" % _target_name(collider))
+		_set_interaction_hint("E Collect %s" % _target_name(collider), _build_status_from_collider(collider, "Collect"))
 		return
 
-	_set_interaction_hint("")
+	_set_interaction_hint("", {})
 
 func _target_name(collider: Object) -> String:
 	if collider.has_method("get"):
@@ -315,8 +335,34 @@ func _target_name(collider: Object) -> String:
 			return enemy_id
 	return str(collider.get("name"))
 
-func _set_interaction_hint(text: String) -> void:
+func _build_status_from_collider(collider: Object, action: String) -> Dictionary:
+	var status: Dictionary = {"action": action}
+	if collider.has_method("get_interaction_status"):
+		var raw: Variant = collider.get_interaction_status()
+		if typeof(raw) == TYPE_DICTIONARY:
+			status = raw.duplicate(true)
+			status["action"] = action
+	if not status.has("name"):
+		status["name"] = _target_name(collider)
+	return status
+
+func _set_interaction_hint(text: String, status: Dictionary = {}) -> void:
 	if _last_interaction_hint == text:
-		return
+		var signature_same: bool = _last_interaction_signature == JSON.stringify(status, "", false)
+		if signature_same:
+			return
 	_last_interaction_hint = text
+	_last_interaction_signature = JSON.stringify(status, "", false)
 	interaction_hint_changed.emit(text)
+	interaction_target_changed.emit(status)
+
+func _skip_time_phase() -> void:
+	var cycle = get_tree().get_first_node_in_group("day_night")
+	if cycle == null or not cycle.has_method("skip_to_next_phase"):
+		return
+	cycle.skip_to_next_phase()
+	var new_time: float = float(cycle.get("time_of_day"))
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud:
+		hud.push_message("Time advanced to %.1fh" % new_time)
+	GameServices.log_event("world.time_skipped", {"time_of_day": new_time})

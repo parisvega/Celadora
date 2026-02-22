@@ -27,6 +27,18 @@ func mine(power: float = 1.0) -> Dictionary:
 		return result
 	return {"mined": false}
 
+func get_interaction_status() -> Dictionary:
+	var item_def: Dictionary = GameServices.get_item_def(item_id)
+	var display_name: String = str(item_def.get("name", item_id))
+	return {
+		"type": "resource",
+		"name": display_name,
+		"item_id": item_id,
+		"durability": max(_current_durability, 0.0),
+		"durability_max": max(durability, 0.001),
+		"progress_pct": clamp((_current_durability / max(durability, 0.001)) * 100.0, 0.0, 100.0)
+	}
+
 func _apply_visual() -> void:
 	var sphere = SphereMesh.new()
 	sphere.radius = 0.45

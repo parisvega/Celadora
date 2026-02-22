@@ -62,3 +62,6 @@ value = 10.0
 
 [node name="SellButton" type="Button" parent="VBox/SellControls"]
 text = "List Item"
+
+[node name="QuickSellScrapButton" type="Button" parent="VBox"]
+text = "Quick Sell Bot Scrap"

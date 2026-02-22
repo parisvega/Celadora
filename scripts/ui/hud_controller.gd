@@ -3,6 +3,7 @@ extends CanvasLayer
 @onready var damage_flash: ColorRect = $DamageFlash
 @onready var stats_label: Label = $StatsLabel
 @onready var compass_label: Label = $CompassLabel
+@onready var target_status_label: Label = $TargetStatusLabel
 @onready var objective_label: Label = $ObjectiveLabel
 @onready var world_status_label: Label = $WorldStatusLabel
 @onready var help_label: Label = $HelpLabel
@@ -11,6 +12,7 @@ extends CanvasLayer
 @onready var interaction_label: Label = $InteractionLabel
 @onready var crosshair: Label = $Crosshair
 @onready var inventory_panel: Panel = $InventoryPanel
+@onready var objective_panel: Panel = $ObjectivePanel
 @onready var crafting_panel: Panel = $CraftingPanel
 @onready var lore_panel: Panel = $LoreJournalPanel
 @onready var marketplace_panel: Panel = $MarketplacePanel
@@ -64,9 +66,10 @@ const LOCATION_SHORT_NAMES = {
 func _ready() -> void:
 	add_to_group("hud")
 	crosshair.text = "+"
-	help_label.text = "I Inventory  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Mine/Attack  |  F5 Save  |  F9 Reset  |  F3 Debug"
+	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Mine/Attack  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
 	movement_label.text = "Movement: W/A/S/D Move  |  Shift Run  |  Space Jump  |  Mouse Look  |  Esc Cursor"
 	compass_label.text = "Facing N"
+	target_status_label.text = ""
 	objective_label.text = "Objective: Initializing..."
 	world_status_label.text = "World: ..."
 	debug_panel.visible = false
@@ -93,6 +96,8 @@ func set_player(player: Node) -> void:
 		_player.stats_updated.connect(_on_player_stats_updated)
 	if _player and _player.has_signal("interaction_hint_changed"):
 		_player.interaction_hint_changed.connect(_on_interaction_hint_changed)
+	if _player and _player.has_signal("interaction_target_changed"):
+		_player.interaction_target_changed.connect(_on_interaction_target_changed)
 	if _player and _player.has_signal("damaged"):
 		_player.damaged.connect(_on_player_damaged)
 	_update_stats_text()
@@ -105,6 +110,8 @@ func _process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("toggle_inventory"):
 		toggle_panel("inventory")
+	if Input.is_action_just_pressed("toggle_objectives"):
+		toggle_panel("objectives")
 	if Input.is_action_just_pressed("toggle_crafting"):
 		toggle_panel("crafting")
 	if Input.is_action_just_pressed("toggle_journal"):
@@ -125,6 +132,10 @@ func toggle_panel(name: String) -> void:
 			inventory_panel.visible = not inventory_panel.visible
 			if inventory_panel.visible and inventory_panel.has_method("refresh"):
 				inventory_panel.refresh()
+		"objectives":
+			objective_panel.visible = not objective_panel.visible
+			if objective_panel.visible and objective_panel.has_method("refresh"):
+				objective_panel.refresh()
 		"crafting":
 			crafting_panel.visible = not crafting_panel.visible
 			if crafting_panel.visible and crafting_panel.has_method("refresh"):
@@ -144,6 +155,7 @@ func push_message(text: String) -> void:
 
 func _set_all_panels_hidden() -> void:
 	inventory_panel.visible = false
+	objective_panel.visible = false
 	crafting_panel.visible = false
 	lore_panel.visible = false
 	marketplace_panel.visible = false
@@ -151,6 +163,8 @@ func _set_all_panels_hidden() -> void:
 func _refresh_all_panels() -> void:
 	if inventory_panel.has_method("refresh"):
 		inventory_panel.refresh()
+	if objective_panel.has_method("refresh"):
+		objective_panel.refresh()
 	if crafting_panel.has_method("refresh"):
 		crafting_panel.refresh()
 	if lore_panel.has_method("refresh"):
@@ -178,6 +192,8 @@ func _on_player_stats_updated() -> void:
 func _on_inventory_changed() -> void:
 	if inventory_panel.has_method("refresh"):
 		inventory_panel.refresh()
+	if objective_panel.has_method("refresh"):
+		objective_panel.refresh()
 	_update_objectives(true)
 
 func _on_credits_changed(_total: int) -> void:
@@ -188,6 +204,8 @@ func _on_credits_changed(_total: int) -> void:
 func _on_lore_entry_unlocked(location_id: String) -> void:
 	if lore_panel.has_method("refresh"):
 		lore_panel.refresh()
+	if objective_panel.has_method("refresh"):
+		objective_panel.refresh()
 	var location = GameServices.data_service.get_location(location_id)
 	push_message("Journal entry added: %s" % location.get("name", location_id))
 	_update_objectives(true)
@@ -201,10 +219,34 @@ func _on_item_crafted(recipe_id: String, _outputs: Dictionary) -> void:
 	push_message("Crafted: %s" % recipe.get("name", recipe_id))
 	if inventory_panel.has_method("refresh"):
 		inventory_panel.refresh()
+	if objective_panel.has_method("refresh"):
+		objective_panel.refresh()
 	_update_objectives(true)
 
 func _on_interaction_hint_changed(text: String) -> void:
 	interaction_label.text = text
+
+func _on_interaction_target_changed(status: Dictionary) -> void:
+	if status.is_empty():
+		target_status_label.text = ""
+		return
+	var kind: String = str(status.get("type", ""))
+	match kind:
+		"resource":
+			target_status_label.text = "%s Integrity %d%%" % [
+				str(status.get("name", "Resource")),
+				int(round(float(status.get("progress_pct", 0.0))))
+			]
+		"enemy":
+			target_status_label.text = "%s HP %.0f/%.0f" % [
+				str(status.get("name", "Enemy")),
+				float(status.get("hp", 0.0)),
+				float(status.get("hp_max", 0.0))
+			]
+		_:
+			var action: String = str(status.get("action", ""))
+			var name_text: String = str(status.get("name", "Target"))
+			target_status_label.text = ("%s %s" % [action, name_text]).strip_edges()
 
 func _update_objectives(announce: bool) -> void:
 	var completed_count: int = 0
@@ -446,6 +488,10 @@ func _update_debug_overlay(delta: float) -> void:
 	lines.append("Lore unlocked: %d/3" % GameServices.lore_journal_service.get_unlocked_ids().size())
 	lines.append("Dream keeper: %s" % dream_text)
 	lines.append("Credits: %d" % GameServices.inventory_service.credits)
+	if GameServices.event_log_service != null:
+		var last_event: Dictionary = GameServices.event_log_service.get_last_event()
+		lines.append("Events: %d" % GameServices.event_log_service.get_count())
+		lines.append("Last event: %s" % str(last_event.get("type", "none")))
 	debug_body.text = _join_parts(lines, "\n")
 
 func _join_parts(parts: Array[String], separator: String) -> String:

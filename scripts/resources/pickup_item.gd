@@ -25,6 +25,18 @@ func interact(_player: Node) -> Dictionary:
 	collect()
 	return {"ok": true}
 
+func get_interaction_status() -> Dictionary:
+	var item_name: String = item_id
+	var item_def: Dictionary = GameServices.data_service.get_item(item_id)
+	if not item_def.is_empty():
+		item_name = str(item_def.get("name", item_id))
+	return {
+		"type": "pickup",
+		"name": item_name,
+		"quantity": max(quantity, 1),
+		"credits": max(credits, 0)
+	}
+
 func collect() -> void:
 	if _collected:
 		return

@@ -74,6 +74,10 @@ func _spawn_keeper() -> void:
 	)
 	_active_life = _rng.randf_range(6.0, 11.0)
 	_spawned_this_night = true
+	GameServices.log_event("dream_keeper.spawned", {
+		"position": [_active_keeper.global_position.x, _active_keeper.global_position.y, _active_keeper.global_position.z],
+		"night_elapsed": _night_elapsed
+	})
 
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud:
@@ -93,6 +97,9 @@ func _drop_seed_and_vanish() -> void:
 		pickup.quantity = 1
 		pickup.credits = 0
 		pickup.global_position = drop_position
+	GameServices.log_event("dream_keeper.seed_dropped", {
+		"position": [drop_position.x, drop_position.y, drop_position.z]
+	})
 
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud:

@@ -25,10 +25,12 @@ Celadora is an open-source sci-fi fantasy RPG prototype built in Godot 4.3. This
 - `Left Click`: Primary action (mine/attack)
 - `E`: Interact (terminals and interactables)
 - `I`: Toggle Inventory
+- `O`: Toggle Objective Checklist
 - `C`: Toggle Crafting
 - `J`: Toggle Lore Journal
 - `M`: Toggle Marketplace
 - `F5`: Manual save
+- `F8`: Skip day/night phase (dev/test convenience)
 - `F9`: Reset local progress (save + inventory + lore + market state)
 - `F3`: Toggle debug overlay (FPS/position/biome/objective/dream status)
 - `Esc`: Toggle mouse capture
@@ -38,6 +40,7 @@ HUD notes:
 - Bottom row 1: current objective progression
 - Bottom row 2: world status (day/night, biome, Dream Keeper window, next lore marker direction/distance)
 - Bottom row 3: contextual interaction hint (mine/attack/interact target)
+- Center status line: current target integrity/HP
 - Bottom row 4: system controls (inventory/crafting/lore/market/interact/save/reset)
 - Bottom row 5: movement controls
 - Hit feedback: lightweight red flash when taking damage
@@ -55,6 +58,8 @@ Objective reliability notes:
 - Starter resource cache now spawns near the initial area (multiple dust types + energy crystals).
 - Dream Keeper now guarantees at least one night encounter after a short delay if you still need a `Dream Seed`.
 - Lore markers now use taller pulsing beacons and switch to completion tint once unlocked.
+- Marketplace includes `Quick Sell Bot Scrap` for faster early-economy flow.
+- Event log service records key gameplay actions for future server-authoritative migration.
 
 ## Data-Driven Balancing
 All game data is editable JSON under `/data` and loaded at runtime.

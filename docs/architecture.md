@@ -4,10 +4,11 @@
 - `Main.tscn` composes `World`, `Player`, and `HUD`.
 - `GameServices` autoload wires all gameplay services.
 - World simulation scripts own generation, resources, day/night, moons, and ambient events.
-- HUD includes objective progression, compass bearings, lore-marker navigation status, debug overlay, and combat hit feedback so loops stay legible without opening panels.
+- HUD includes objective progression, objective checklist panel, compass bearings, lore-marker navigation status, target status, debug overlay, and combat hit feedback so loops stay legible without opening panels.
 
 ## Services
 - `DataService`: loads JSON definitions from `/data` and validates required Celadora contracts at boot.
+- `EventLogService`: captures structured client-side gameplay events and serializes them for analysis/migration.
 - `InventoryService`: item quantities, Celador Credits, passive modifier aggregation.
 - `CraftingService`: recipe validation/consumption/outputs.
 - `SaveService`: local JSON persistence (`user://savegame_v01.json`).

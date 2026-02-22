@@ -9,12 +9,14 @@ const SAVE_PATH = "user://savegame_v01.json"
 var _inventory_service: Node = null
 var _lore_service: Node = null
 var _marketplace_service: Node = null
+var _event_log_service: Node = null
 var loaded_state: Dictionary = {}
 
-func setup(inventory_service: Node, lore_service: Node, marketplace_service: Node) -> void:
+func setup(inventory_service: Node, lore_service: Node, marketplace_service: Node, event_log_service: Node) -> void:
 	_inventory_service = inventory_service
 	_lore_service = lore_service
 	_marketplace_service = marketplace_service
+	_event_log_service = event_log_service
 
 func load_game() -> Dictionary:
 	loaded_state = {}
@@ -28,11 +30,15 @@ func load_game() -> Dictionary:
 	var credits = int(loaded_state.get("credits", 0))
 	var unlocked_lore: Array = loaded_state.get("unlocked_lore", [])
 	var marketplace_state: Dictionary = loaded_state.get("marketplace", {})
+	var event_log_state: Array = loaded_state.get("event_log", [])
 
 	_inventory_service.set_inventory(inventory)
 	_inventory_service.set_credits(credits)
 	_lore_service.set_unlocked_ids(unlocked_lore)
 	_marketplace_service.load_state(marketplace_state)
+	if _event_log_service != null:
+		_event_log_service.load_state(event_log_state)
+		_event_log_service.record("system.save_loaded", {"path": SAVE_PATH})
 	save_loaded.emit(loaded_state)
 	return loaded_state
 
@@ -44,7 +50,8 @@ func save_game(player_state: Dictionary) -> bool:
 		"inventory": _inventory_service.get_all_items(),
 		"credits": _inventory_service.credits,
 		"unlocked_lore": _lore_service.get_unlocked_ids(),
-		"marketplace": _marketplace_service.serialize_state()
+		"marketplace": _marketplace_service.serialize_state(),
+		"event_log": _event_log_service.serialize_state() if _event_log_service != null else []
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -52,6 +59,8 @@ func save_game(player_state: Dictionary) -> bool:
 		return false
 	file.store_string(JSON.stringify(state_to_write, "\t"))
 	loaded_state = state_to_write
+	if _event_log_service != null:
+		_event_log_service.record("system.save_written", {"path": SAVE_PATH})
 	save_written.emit(SAVE_PATH)
 	return true
 
@@ -61,6 +70,8 @@ func get_loaded_state() -> Dictionary:
 func delete_save_file() -> bool:
 	loaded_state = {}
 	if not FileAccess.file_exists(SAVE_PATH):
+		if _event_log_service != null:
+			_event_log_service.record("system.save_deleted", {"path": SAVE_PATH, "already_missing": true})
 		save_deleted.emit(SAVE_PATH)
 		return true
 	var dir: DirAccess = DirAccess.open("user://")
@@ -71,5 +82,7 @@ func delete_save_file() -> bool:
 	if err != OK:
 		push_error("Unable to delete save file: %s (err=%d)" % [SAVE_PATH, err])
 		return false
+	if _event_log_service != null:
+		_event_log_service.record("system.save_deleted", {"path": SAVE_PATH, "already_missing": false})
 	save_deleted.emit(SAVE_PATH)
 	return true

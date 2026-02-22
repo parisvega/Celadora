@@ -3,6 +3,7 @@ extends Node
 signal services_ready
 
 const DataServiceScript = preload("res://scripts/services/data_service.gd")
+const EventLogServiceScript = preload("res://scripts/services/event_log_service.gd")
 const InventoryServiceScript = preload("res://scripts/services/inventory_service.gd")
 const CraftingServiceScript = preload("res://scripts/services/crafting_service.gd")
 const SaveServiceScript = preload("res://scripts/services/save_service.gd")
@@ -11,6 +12,7 @@ const MarketplaceServiceScript = preload("res://scripts/services/marketplace_ser
 const LocalNetworkServiceScript = preload("res://scripts/services/network/local_network_service.gd")
 
 var data_service: Node = null
+var event_log_service: Node = null
 var inventory_service: Node = null
 var crafting_service: Node = null
 var save_service: Node = null
@@ -32,6 +34,9 @@ func bootstrap() -> void:
 	var data_ok: bool = data_service.load_all()
 	if not data_ok:
 		push_error("[GameServices] Data validation failed. See DataService errors in output.")
+
+	event_log_service = EventLogServiceScript.new()
+	add_child(event_log_service)
 
 	inventory_service = InventoryServiceScript.new()
 	add_child(inventory_service)
@@ -55,7 +60,7 @@ func bootstrap() -> void:
 
 	save_service = SaveServiceScript.new()
 	add_child(save_service)
-	save_service.setup(inventory_service, lore_journal_service, marketplace_service)
+	save_service.setup(inventory_service, lore_journal_service, marketplace_service, event_log_service)
 	save_service.load_game()
 
 	_bootstrapped = true
@@ -78,6 +83,11 @@ func get_recipe_def(recipe_id: String) -> Dictionary:
 func get_data_validation_report() -> Dictionary:
 	return data_service.get_validation_report()
 
+func log_event(event_type: String, payload: Dictionary = {}, context: Dictionary = {}) -> Dictionary:
+	if event_log_service == null:
+		return {}
+	return event_log_service.record(event_type, payload, context)
+
 func reset_local_progress() -> Dictionary:
 	if not _bootstrapped:
 		bootstrap()
@@ -86,6 +96,9 @@ func reset_local_progress() -> Dictionary:
 	inventory_service.clear()
 	lore_journal_service.set_unlocked_ids([])
 	marketplace_service.load_state({})
+	if event_log_service:
+		event_log_service.clear()
+		event_log_service.record("system.progress_reset", {"save_path": "user://savegame_v01.json"})
 
 	return {
 		"ok": deleted,

@@ -16,6 +16,7 @@ func unlock_entry(location_id: String) -> bool:
 		push_warning("Unknown lore location: %s" % location_id)
 		return false
 	_unlocked[location_id] = true
+	GameServices.log_event("lore.entry_unlocked", {"location_id": location_id})
 	entry_unlocked.emit(location_id)
 	return true
 

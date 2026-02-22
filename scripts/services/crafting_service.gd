@@ -57,6 +57,10 @@ func craft(recipe_id: String) -> Dictionary:
 	for out_item_id in outputs.keys():
 		_inventory_service.add_item(out_item_id, int(outputs[out_item_id]))
 
+	GameServices.log_event("crafting.recipe_crafted", {
+		"recipe_id": recipe_id,
+		"outputs": outputs
+	})
 	crafted.emit(recipe_id, outputs)
 	return {"ok": true, "reason": "Crafted %s" % recipe.get("name", recipe_id), "outputs": outputs}
 

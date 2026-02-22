@@ -42,7 +42,9 @@ required=(
   scenes/world/World.tscn
   scenes/player/Player.tscn
   scenes/ui/HUD.tscn
+  scenes/ui/ObjectivePanel.tscn
   scripts/services/game_services.gd
+  scripts/services/event_log_service.gd
   scripts/controllers/player_controller.gd
   scripts/controllers/enemy_controller.gd
 )

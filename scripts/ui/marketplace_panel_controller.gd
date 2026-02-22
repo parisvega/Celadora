@@ -10,6 +10,7 @@ extends Panel
 @onready var sell_qty: SpinBox = $VBox/SellControls/SellQty
 @onready var sell_price: SpinBox = $VBox/SellControls/SellPrice
 @onready var sell_button: Button = $VBox/SellControls/SellButton
+@onready var quick_sell_scrap_button: Button = $VBox/QuickSellScrapButton
 
 var _listing_ids: Array = []
 
@@ -18,6 +19,7 @@ func _ready() -> void:
 	buy_button.pressed.connect(_on_buy_pressed)
 	refresh_button.pressed.connect(_on_refresh_pressed)
 	sell_button.pressed.connect(_on_sell_pressed)
+	quick_sell_scrap_button.pressed.connect(_on_quick_sell_scrap_pressed)
 	GameServices.marketplace_service.listings_updated.connect(refresh)
 	GameServices.inventory_service.inventory_changed.connect(_populate_sell_options)
 	GameServices.inventory_service.credits_changed.connect(_on_credits_changed)
@@ -84,3 +86,15 @@ func _on_refresh_pressed() -> void:
 
 func _on_credits_changed(_total: int) -> void:
 	status_label.text = "Credits: %d" % GameServices.inventory_service.credits
+
+func _on_quick_sell_scrap_pressed() -> void:
+	var qty: int = GameServices.inventory_service.get_quantity("bot_scrap")
+	if qty <= 0:
+		status_label.text = "No bot scrap to quick sell."
+		return
+	var item_def: Dictionary = GameServices.data_service.get_item("bot_scrap")
+	var base_value: int = int(item_def.get("base_value", 16))
+	var unit_price: int = max(1, int(round(float(base_value) * 0.75)))
+	var result: Dictionary = GameServices.marketplace_service.sell("bot_scrap", qty, unit_price)
+	status_label.text = str(result.get("reason", "Quick sell failed."))
+	refresh()

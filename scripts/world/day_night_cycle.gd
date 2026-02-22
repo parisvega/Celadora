@@ -28,6 +28,17 @@ func _process(delta: float) -> void:
 func is_night() -> bool:
 	return time_of_day < 6.0 or time_of_day >= 18.0
 
+func skip_to_next_phase() -> void:
+	if is_night():
+		time_of_day = 9.0
+	else:
+		time_of_day = 21.0
+	_apply_lighting()
+	var current_night: bool = is_night()
+	if current_night != _last_night_state:
+		_last_night_state = current_night
+		night_state_changed.emit(current_night)
+
 func _apply_lighting() -> void:
 	var day_progress = time_of_day / 24.0
 	var sun_angle = day_progress * TAU
