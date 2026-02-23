@@ -107,6 +107,47 @@ func _run_checks() -> void:
 		else:
 			_add_check("viewmodel_mine_action_animates", false, {"reason": "play_action missing"}, "critical")
 
+		if camera != null:
+			var viewport_size: Vector2 = camera.get_viewport().get_visible_rect().size
+			var probe_nodes: Array = [arm_left, arm_right, hand_left, hand_right, tool_mesh]
+			var visible_points: int = 0
+			var left_visible: bool = false
+			var right_visible: bool = false
+			var probe_details: Array = []
+			for probe_node in probe_nodes:
+				if probe_node == null:
+					continue
+				var point: Vector3 = probe_node.global_position
+				var in_front: bool = not camera.is_position_behind(point)
+				var screen: Vector2 = camera.unproject_position(point)
+				var in_bounds: bool = (
+					screen.x >= 0.0 and screen.x <= viewport_size.x and
+					screen.y >= viewport_size.y * 0.38 and screen.y <= viewport_size.y
+				)
+				if in_front and in_bounds:
+					visible_points += 1
+					if probe_node.name.to_lower().contains("left"):
+						left_visible = true
+					if probe_node.name.to_lower().contains("right") or probe_node.name.to_lower().contains("tool"):
+						right_visible = true
+				probe_details.append({
+					"name": probe_node.name,
+					"in_front": in_front,
+					"in_bounds": in_bounds,
+					"screen": [round(screen.x), round(screen.y)]
+				})
+
+			var projection_ok: bool = visible_points >= 3 and left_visible and right_visible
+			_add_check("viewmodel_points_project_into_view", projection_ok, {
+				"visible_points": visible_points,
+				"left_visible": left_visible,
+				"right_visible": right_visible,
+				"viewport": [viewport_size.x, viewport_size.y],
+				"probes": probe_details
+			}, "critical")
+		else:
+			_add_check("viewmodel_points_project_into_view", false, {"reason": "camera missing"}, "critical")
+
 	var moon_system: Node = main.get_node_or_null("World/MoonSystem")
 	var moon_children: int = moon_system.get_child_count() if moon_system != null else 0
 	_add_check("moon_system_spawns_8", moon_children == 8, {

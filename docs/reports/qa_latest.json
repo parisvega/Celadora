@@ -70,14 +70,75 @@
           -14,
           -6
         ],
-        "delta": 29.9111213684082,
+        "delta": 17.269681930542,
         "during": [
-          2.1226978302002,
-          -3.15882682800293,
+          13.904577255249,
+          -7.74066781997681,
           -6
         ]
       },
       "id": "viewmodel_mine_action_animates",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+        "left_visible": true,
+        "probes": [
+          {
+            "in_bounds": true,
+            "in_front": true,
+            "name": "ArmLeftMesh",
+            "screen": [
+              679,
+              920
+            ]
+          },
+          {
+            "in_bounds": true,
+            "in_front": true,
+            "name": "ArmRightMesh",
+            "screen": [
+              1096,
+              932
+            ]
+          },
+          {
+            "in_bounds": true,
+            "in_front": true,
+            "name": "HandLeftMesh",
+            "screen": [
+              664,
+              839
+            ]
+          },
+          {
+            "in_bounds": true,
+            "in_front": true,
+            "name": "HandRightMesh",
+            "screen": [
+              932,
+              879
+            ]
+          },
+          {
+            "in_bounds": true,
+            "in_front": true,
+            "name": "ToolMesh",
+            "screen": [
+              1067,
+              906
+            ]
+          }
+        ],
+        "right_visible": true,
+        "viewport": [
+          1280,
+          1280
+        ],
+        "visible_points": 5
+      },
+      "id": "viewmodel_points_project_into_view",
       "ok": true,
       "severity": "critical"
     },
@@ -186,11 +247,11 @@
       "severity": "critical"
     }
   ],
-  "ended_at": "2026-02-23T19:20:47",
-  "started_at": "2026-02-23T19:20:46",
+  "ended_at": "2026-02-23T19:25:12",
+  "started_at": "2026-02-23T19:25:11",
   "summary": {
     "failed": 0,
-    "passed": 21,
-    "total": 21
+    "passed": 22,
+    "total": 22
   }
 }

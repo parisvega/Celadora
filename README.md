@@ -140,11 +140,15 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.md`
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.json`
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_browser_objective_latest.json`
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_combined_latest.md`
+- Build combined QA snapshot report only:
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/qa/build_combined_report.sh`
 - Run browser objective-flow QA directly:
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/qa/run_browser_objective_qa.sh 8060`
   - Notes:
     - Uses Playwright via local Node tooling (`package.json`).
     - Marks result `inconclusive` when headless browser lacks WebGL2 support.
+    - Includes a first-person viewmodel visibility gate (arms/hands/tool projected in viewport).
 - Run v0.1 goal audit report:
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/goal_check.sh`
   - Output:

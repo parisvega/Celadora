@@ -34,6 +34,7 @@ const result = {
   status: "fail",
   ok: false,
   payload: null,
+  viewmodel: null,
   screenshot: screenshotPath,
   error: "",
   diagnostics: {},
@@ -60,7 +61,12 @@ try {
   await page.screenshot({ path: screenshotPath, fullPage: false });
 
   result.payload = payload;
-  result.ok = Boolean(payload && payload.ok === true);
+  result.viewmodel = payload && typeof payload === "object" ? payload.viewmodel || null : null;
+  const payloadOk = Boolean(payload && payload.ok === true);
+  const viewmodelOk = result.viewmodel && typeof result.viewmodel === "object"
+    ? Boolean(result.viewmodel.ok === true)
+    : false;
+  result.ok = payloadOk && viewmodelOk;
   result.status = result.ok ? "pass" : "fail";
 } catch (error) {
   result.error = error instanceof Error ? error.message : String(error);
@@ -92,6 +98,10 @@ const webglUnsupported =
 if (!result.ok && webglUnsupported) {
   result.status = "inconclusive";
   result.error = result.error || "WebGL2 unsupported in this headless browser environment.";
+}
+
+if (!result.ok && result.payload && result.payload.ok === true && (!result.viewmodel || result.viewmodel.ok !== true)) {
+  result.error = result.error || "Objective flow passed, but first-person viewmodel visibility check failed.";
 }
 
 await fs.writeFile(reportPath, JSON.stringify(result, null, 2), "utf8");

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-echo "[1/2] Running offline-capable headless QA..."
+echo "[1/3] Running offline-capable headless QA..."
 scripts/qa/run_headless_qa.sh
 
 echo "[2/3] Running browser objective-flow QA (best effort)..."
@@ -25,9 +25,13 @@ else
   echo "Browser QA unavailable or failed in this environment (see /tmp/celadora-browser-qa.log). Continuing with headless results."
 fi
 
-echo "[3/3] QA agent complete."
+echo "[3/3] Building combined QA report..."
+scripts/qa/build_combined_report.sh
+
+echo "QA agent complete."
 echo "Latest reports:"
 echo "- $ROOT_DIR/docs/reports/qa_latest.md"
 echo "- $ROOT_DIR/docs/reports/qa_latest.json"
 echo "- $ROOT_DIR/docs/reports/qa_browser_latest.json"
 echo "- $ROOT_DIR/docs/reports/qa_browser_objective_latest.json"
+echo "- $ROOT_DIR/docs/reports/qa_combined_latest.md"

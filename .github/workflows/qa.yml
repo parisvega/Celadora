@@ -38,6 +38,9 @@ jobs:
       - name: Run Goal Check
         run: scripts/dev/goal_check.sh
 
+      - name: Build Combined QA Report
+        run: scripts/qa/build_combined_report.sh
+
       - name: Upload QA Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -48,3 +51,4 @@ jobs:
             docs/reports/qa_latest.json
             docs/reports/qa_browser_objective_latest.json
             docs/reports/goals_status_latest.md
+            docs/reports/qa_combined_latest.md

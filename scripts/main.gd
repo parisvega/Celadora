@@ -85,6 +85,10 @@ func _run_web_objective_flow_qa() -> void:
 	_reset_runtime_state_for_qa()
 	await get_tree().process_frame
 
+	var viewmodel_status: Dictionary = _collect_viewmodel_status_for_qa()
+	report["viewmodel"] = viewmodel_status
+	_append_qa_step(report, "viewmodel_visible", bool(viewmodel_status.get("ok", false)), viewmodel_status)
+
 	GameServices.inventory_service.add_item("dust_blue", 1)
 	_mark_objective_complete_if_ready("collect_dust")
 	_append_qa_step(report, "collect_dust", _is_objective_complete("collect_dust"), {"added": "dust_blue"})
@@ -136,10 +140,76 @@ func _run_web_objective_flow_qa() -> void:
 
 	report["completed"] = completed
 	report["objective_states"] = objective_states
-	report["ok"] = completed >= QA_OBJECTIVE_ORDER.size()
+	report["ok"] = completed >= QA_OBJECTIVE_ORDER.size() and bool(viewmodel_status.get("ok", false))
 	report["finished"] = true
 	report["ended_at_unix"] = Time.get_unix_time_from_system()
 	_publish_web_qa_report(report)
+
+func _collect_viewmodel_status_for_qa() -> Dictionary:
+	var result: Dictionary = {
+		"ok": false,
+		"nodes_present": false,
+		"visible_points": 0,
+		"required_visible_points": 3,
+		"left_visible": false,
+		"right_visible": false,
+		"details": []
+	}
+	var camera: Camera3D = player.get_node_or_null("Camera") as Camera3D
+	var viewmodel: Node3D = player.get_node_or_null("Camera/ViewModelRig") as Node3D
+	if camera == null or viewmodel == null:
+		return result
+
+	var point_nodes: Array[Node3D] = []
+	for node_path in [
+		"RigPivot/ArmLeft/ArmLeftMesh",
+		"RigPivot/ArmRight/ArmRightMesh",
+		"RigPivot/ArmLeft/HandLeftMesh",
+		"RigPivot/ArmRight/HandRightMesh",
+		"RigPivot/ArmRight/ToolPivot/ToolMesh"
+	]:
+		var node_3d: Node3D = viewmodel.get_node_or_null(node_path) as Node3D
+		if node_3d != null:
+			point_nodes.append(node_3d)
+	result["nodes_present"] = point_nodes.size() >= 5
+	if point_nodes.is_empty():
+		return result
+
+	var viewport_size: Vector2 = camera.get_viewport().get_visible_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return result
+
+	var visible_points: int = 0
+	var left_visible: bool = false
+	var right_visible: bool = false
+	var details: Array = []
+	for node_3d in point_nodes:
+		var point: Vector3 = node_3d.global_position
+		var in_front: bool = not camera.is_position_behind(point)
+		var screen: Vector2 = camera.unproject_position(point)
+		var in_bounds: bool = (
+			screen.x >= 0.0 and screen.x <= viewport_size.x and
+			screen.y >= viewport_size.y * 0.38 and screen.y <= viewport_size.y
+		)
+		if in_front and in_bounds:
+			visible_points += 1
+			if node_3d.name.to_lower().contains("left"):
+				left_visible = true
+			if node_3d.name.to_lower().contains("right") or node_3d.name.to_lower().contains("tool"):
+				right_visible = true
+		details.append({
+			"name": node_3d.name,
+			"in_front": in_front,
+			"in_bounds": in_bounds,
+			"screen": [round(screen.x), round(screen.y)]
+		})
+
+	result["visible_points"] = visible_points
+	result["left_visible"] = left_visible
+	result["right_visible"] = right_visible
+	result["details"] = details
+	result["ok"] = bool(result.get("nodes_present", false)) and visible_points >= int(result.get("required_visible_points", 3)) and left_visible and right_visible
+	return result
 
 func _reset_runtime_state_for_qa() -> void:
 	GameServices.inventory_service.clear()
