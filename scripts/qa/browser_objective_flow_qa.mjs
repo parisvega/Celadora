@@ -6,6 +6,21 @@ const qaUrl = process.env.CELADORA_QA_URL || "http://127.0.0.1:8060/?qa_objectiv
 const reportPath = process.env.CELADORA_QA_REPORT || path.resolve("docs/reports/qa_browser_objective_latest.json");
 const screenshotPath = process.env.CELADORA_QA_SCREENSHOT || path.resolve("docs/reports/qa_browser_objective_latest.png");
 const timeoutMs = Number(process.env.CELADORA_QA_TIMEOUT_MS || 45000);
+const headless = String(process.env.CELADORA_QA_HEADLESS ?? "1") !== "0";
+const launchArgs = (process.env.CELADORA_QA_BROWSER_ARGS || "")
+  .split(/\s+/)
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+if (launchArgs.length === 0) {
+  launchArgs.push(
+    "--ignore-gpu-blocklist",
+    "--enable-webgl",
+    "--enable-webgl2-compute-context",
+    "--use-angle=swiftshader-webgl",
+    "--enable-unsafe-swiftshader"
+  );
+}
 
 await fs.mkdir(path.dirname(reportPath), { recursive: true });
 await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
@@ -14,6 +29,8 @@ const result = {
   timestamp_utc: new Date().toISOString(),
   url: qaUrl,
   timeout_ms: timeoutMs,
+  headless,
+  launch_args: launchArgs,
   status: "fail",
   ok: false,
   payload: null,
@@ -26,7 +43,11 @@ let browser;
 let page;
 const consoleLines = [];
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({
+    headless,
+    args: launchArgs,
+    chromiumSandbox: false,
+  });
   page = await browser.newPage();
   page.setDefaultTimeout(timeoutMs);
   page.on("console", (msg) => {

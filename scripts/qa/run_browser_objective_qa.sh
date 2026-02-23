@@ -9,6 +9,8 @@ STAMP="$(date +%s)"
 URL="http://127.0.0.1:${PORT}/?qa_objective_auto=1&v=${STAMP}"
 REPORT_PATH="$ROOT_DIR/docs/reports/qa_browser_objective_latest.json"
 SCREENSHOT_PATH="/tmp/celadora-qa-browser-objective-latest.png"
+QA_HEADLESS="${CELADORA_QA_HEADLESS:-1}"
+QA_BROWSER_ARGS="${CELADORA_QA_BROWSER_ARGS:-}"
 
 if [ ! -d "$ROOT_DIR/node_modules/playwright" ]; then
   npm install --no-audit --no-fund >/tmp/celadora-npm-install.log 2>&1
@@ -32,6 +34,8 @@ CELADORA_QA_URL="$URL" \
 CELADORA_QA_REPORT="$REPORT_PATH" \
 CELADORA_QA_SCREENSHOT="$SCREENSHOT_PATH" \
 CELADORA_QA_TIMEOUT_MS=45000 \
+CELADORA_QA_HEADLESS="$QA_HEADLESS" \
+CELADORA_QA_BROWSER_ARGS="$QA_BROWSER_ARGS" \
 npm run qa:browser:objective --silent
 
 echo "Browser objective QA report:"

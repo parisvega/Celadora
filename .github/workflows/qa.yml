@@ -1,0 +1,50 @@
+name: Celadora QA
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node QA dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Headless QA
+        run: scripts/qa/run_headless_qa.sh
+
+      - name: Run Browser Objective QA
+        run: |
+          xvfb-run -a env \
+            CELADORA_QA_HEADLESS=0 \
+            CELADORA_QA_BROWSER_ARGS="--ignore-gpu-blocklist --enable-webgl --enable-webgl2-compute-context --use-angle=swiftshader-webgl --enable-unsafe-swiftshader" \
+            scripts/qa/run_browser_objective_qa.sh 8060
+
+      - name: Run Goal Check
+        run: scripts/dev/goal_check.sh
+
+      - name: Upload QA Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: celadora-qa-reports
+          path: |
+            docs/reports/qa_latest.md
+            docs/reports/qa_latest.json
+            docs/reports/qa_browser_objective_latest.json
+            docs/reports/goals_status_latest.md

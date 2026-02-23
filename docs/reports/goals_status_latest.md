@@ -1,6 +1,6 @@
 # Celadora v0.1 Goal Status
 
-- Generated: 2026-02-23T17:25:10Z
+- Generated: 2026-02-23T19:21:09Z
 - QA source: `docs/reports/qa_latest.json`
 
 ## Non-Negotiable Goals
@@ -11,7 +11,7 @@
 - [PASS] Required lore locations present.
 - [PASS] Ruins terminal boss-hook progression can be primed in runtime.
 - [PASS] World-state progression survives save/load.
-- [CHECK] Browser objective-flow automation verifies full objective completion path.
+- [PASS] Browser objective-flow automation verifies full objective completion path.
 
 ## Notes
 - `PASS` indicates automated verification is in place and currently passing.

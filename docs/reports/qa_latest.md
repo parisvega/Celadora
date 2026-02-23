@@ -1,7 +1,7 @@
 # Celadora Headless QA Report
 
-- Started: 2026-02-23T17:24:06
-- Ended: 2026-02-23T17:24:07
+- Started: 2026-02-23T19:20:46
+- Ended: 2026-02-23T19:20:47
 - Result: PASS (21/21 passed)
 
 ## Checks
@@ -15,7 +15,7 @@
 | viewmodel_meshes_ready | PASS | critical | {"arm_left":true,"arm_right":true,"hand_left":true,"hand_right":true,"tool_mesh":true} |
 | viewmodel_unshaded_material | PASS | critical | {"shading_mode":0} |
 | viewmodel_has_active_tool | PASS | critical | {"active_tool":"miner"} |
-| viewmodel_mine_action_animates | PASS | critical | {"before":[30.0000019073486,-14,-6],"delta":15.1748332977295,"during":[15.8569860458374,-8.49993896484375,-6]} |
+| viewmodel_mine_action_animates | PASS | critical | {"before":[30.0000019073486,-14,-6],"delta":29.9111213684082,"during":[2.1226978302002,-3.15882682800293,-6]} |
 | moon_system_spawns_8 | PASS | critical | {"moon_children":8} |
 | required_items_loaded | PASS | critical | {} |
 | viewmodel_config_loaded | PASS | critical | {} |

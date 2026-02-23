@@ -1,16 +1,117 @@
 {
-  "timestamp_utc": "2026-02-23T17:24:18.281Z",
-  "url": "http://127.0.0.1:8060/?qa_objective_auto=1&v=1771867447",
+  "timestamp_utc": "2026-02-23T19:21:02.259Z",
+  "url": "http://127.0.0.1:8060/?qa_objective_auto=1&v=1771874451",
   "timeout_ms": 45000,
-  "status": "inconclusive",
-  "ok": false,
-  "payload": null,
+  "headless": true,
+  "launch_args": [
+    "--ignore-gpu-blocklist",
+    "--enable-webgl",
+    "--enable-webgl2-compute-context",
+    "--use-angle=swiftshader-webgl",
+    "--enable-unsafe-swiftshader"
+  ],
+  "status": "pass",
+  "ok": true,
+  "payload": {
+    "completed": 8,
+    "ended_at_unix": 1771874463.693,
+    "finished": true,
+    "mode": "objective_flow",
+    "objective_count": 8,
+    "objective_states": {
+      "acquire_dream_seed": true,
+      "collect_dust": true,
+      "collect_energy": true,
+      "craft_moonblade": true,
+      "forge_alloy": true,
+      "prime_ruins_terminal": true,
+      "salvage_bot": true,
+      "unlock_lore": true
+    },
+    "ok": true,
+    "started_at_unix": 1771874463.681,
+    "steps": [
+      {
+        "details": {
+          "added": "dust_blue"
+        },
+        "id": "collect_dust",
+        "ok": true
+      },
+      {
+        "details": {
+          "added": "energy_crystal"
+        },
+        "id": "collect_energy",
+        "ok": true
+      },
+      {
+        "details": {
+          "added": "bot_scrap"
+        },
+        "id": "salvage_bot",
+        "ok": true
+      },
+      {
+        "details": {
+          "ok": true,
+          "outputs": {
+            "alloy": 1
+          },
+          "reason": "Crafted Forge Celadora Alloy"
+        },
+        "id": "forge_alloy",
+        "ok": true
+      },
+      {
+        "details": {
+          "unlocked_count": 3
+        },
+        "id": "unlock_lore",
+        "ok": true
+      },
+      {
+        "details": {
+          "added": "dream_seed"
+        },
+        "id": "acquire_dream_seed",
+        "ok": true
+      },
+      {
+        "details": {
+          "ok": true,
+          "outputs": {
+            "moonblade_prototype": 1
+          },
+          "reason": "Crafted Moonblade (Prototype)"
+        },
+        "id": "craft_moonblade",
+        "ok": true
+      },
+      {
+        "details": {
+          "message": "Terminal synced. Ruins protocol primed (boss encounter arrives in a future update).",
+          "ok": true,
+          "state": "primed"
+        },
+        "id": "prime_ruins_terminal",
+        "ok": true
+      }
+    ]
+  },
   "screenshot": "/tmp/celadora-qa-browser-objective-latest.png",
-  "error": "page.waitForFunction: Timeout 45000ms exceeded.",
+  "error": "",
   "diagnostics": {
-    "body_text": "Error\nThe following features required to run Godot projects on the Web are missing:\nWebGL2 - Check web browser configuration and hardware support",
+    "body_text": "",
     "console_tail": [
-      "Error\nThe following features required to run Godot projects on the Web are missing:\nWebGL2 - Check web browser configuration and hardware support"
+      "[.WebGL-0x12400196600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org",
+      "OpenGL API OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium)) - Compatibility - Using Device: WebKit - WebKit WebGL",
+      "[DataService] Validation passed (13 items, 2 recipes, 1 enemies).",
+      "[WebQA] Objective flow result: {\"completed\":8,\"ended_at_unix\":1771874463.693,\"finished\":true,\"mode\":\"objective_flow\",\"objective_count\":8,\"objective_states\":{\"acquire_dream_seed\":true,\"collect_dust\":true,\"collect_energy\":true,\"craft_moonblade\":true,\"forge_alloy\":true,\"prime_ruins_terminal\":true,\"salvage_bot\":true,\"unlock_lore\":true},\"ok\":true,\"started_at_unix\":1771874463.681,\"steps\":[{\"details\":{\"added\":\"dust_blue\"},\"id\":\"collect_dust\",\"ok\":true},{\"details\":{\"added\":\"energy_crystal\"},\"id\":\"collect_energy\",\"ok\":true},{\"details\":{\"added\":\"bot_scrap\"},\"id\":\"salvage_bot\",\"ok\":true},{\"details\":{\"ok\":true,\"outputs\":{\"alloy\":1},\"reason\":\"Crafted Forge Celadora Alloy\"},\"id\":\"forge_alloy\",\"ok\":true},{\"details\":{\"unlocked_count\":3},\"id\":\"unlock_lore\",\"ok\":true},{\"details\":{\"added\":\"dream_seed\"},\"id\":\"acquire_dream_seed\",\"ok\":true},{\"details\":{\"ok\":true,\"outputs\":{\"moonblade_prototype\":1},\"reason\":\"Crafted Moonblade (Prototype)\"},\"id\":\"craft_moonblade\",\"ok\":true},{\"details\":{\"message\":\"Terminal synced. Ruins protocol primed (boss encounter arrives in a future update).\",\"ok\":true,\"state\":\"primed\"},\"id\":\"prime_ruins_terminal\",\"ok\":true}]}",
+      "[CeladoraObjectiveQA]{\"completed\":8,\"ended_at_unix\":1771874463.693,\"finished\":true,\"mode\":\"objective_flow\",\"objective_count\":8,\"objective_states\":{\"acquire_dream_seed\":true,\"collect_dust\":true,\"collect_energy\":true,\"craft_moonblade\":true,\"forge_alloy\":true,\"prime_ruins_terminal\":true,\"salvage_bot\":true,\"unlock_lore\":true},\"ok\":true,\"started_at_unix\":1771874463.681,\"steps\":[{\"details\":{\"added\":\"dust_blue\"},\"id\":\"collect_dust\",\"ok\":true},{\"details\":{\"added\":\"energy_crystal\"},\"id\":\"collect_energy\",\"ok\":true},{\"details\":{\"added\":\"bot_scrap\"},\"id\":\"salvage_bot\",\"ok\":true},{\"details\":{\"ok\":true,\"outputs\":{\"alloy\":1},\"reason\":\"Crafted Forge Celadora Alloy\"},\"id\":\"forge_alloy\",\"ok\":true},{\"details\":{\"unlocked_count\":3},\"id\":\"unlock_lore\",\"ok\":true},{\"details\":{\"added\":\"dream_seed\"},\"id\":\"acquire_dream_seed\",\"ok\":true},{\"details\":{\"ok\":true,\"outputs\":{\"moonblade_prototype\":1},\"reason\":\"Crafted Moonblade (Prototype)\"},\"id\":\"craft_moonblade\",\"ok\":true},{\"details\":{\"message\":\"Terminal synced. Ruins protocol primed (boss encounter arrives in a future update).\",\"ok\":true,\"state\":\"primed\"},\"id\":\"prime_ruins_terminal\",\"ok\":true}]}",
+      "[.WebGL-0x124001ac200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+      "[.WebGL-0x124001ace00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
     ]
   }
 }
