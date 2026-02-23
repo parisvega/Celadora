@@ -3,6 +3,7 @@ extends CanvasLayer
 @onready var damage_flash: ColorRect = $DamageFlash
 @onready var stats_label: Label = $StatsLabel
 @onready var compass_label: Label = $CompassLabel
+@onready var route_label: Label = $RouteLabel
 @onready var target_status_label: Label = $TargetStatusLabel
 @onready var objective_label: Label = $ObjectiveLabel
 @onready var world_status_label: Label = $WorldStatusLabel
@@ -16,6 +17,9 @@ extends CanvasLayer
 @onready var crafting_panel: Panel = $CraftingPanel
 @onready var lore_panel: Panel = $LoreJournalPanel
 @onready var marketplace_panel: Panel = $MarketplacePanel
+@onready var completion_panel: Panel = $CompletionPanel
+@onready var completion_summary: RichTextLabel = $CompletionPanel/VBox/Summary
+@onready var completion_meta: Label = $CompletionPanel/VBox/Meta
 @onready var debug_panel: Panel = $DebugPanel
 @onready var debug_body: RichTextLabel = $DebugPanel/DebugVBox/DebugBody
 
@@ -32,6 +36,7 @@ var _debug_overlay_visible: bool = false
 var _debug_refresh_left: float = 0.0
 var _objective_sync_busy: bool = false
 var _session_started_unix: float = 0.0
+var _completion_panel_time_left: float = 0.0
 
 const OBJECTIVE_ORDER = [
 	"collect_dust",
@@ -74,11 +79,15 @@ func _ready() -> void:
 	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Swing (Mine/Attack)  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
 	movement_label.text = "Movement: W/A/S/D Move  |  Shift Run  |  Space Jump  |  Mouse Look  |  Esc Cursor"
 	compass_label.text = "Facing N"
+	route_label.text = "Route: Initializing..."
 	target_status_label.text = ""
 	objective_label.text = "Objective: Initializing..."
 	world_status_label.text = "World: ..."
 	debug_panel.visible = false
 	debug_body.text = ""
+	completion_panel.visible = false
+	completion_summary.text = ""
+	completion_meta.text = ""
 	_set_all_panels_hidden()
 	_cache_world_refs()
 
@@ -115,6 +124,10 @@ func _process(delta: float) -> void:
 		_message_time_left -= delta
 		if _message_time_left <= 0.0:
 			message_label.text = ""
+	if _completion_panel_time_left > 0.0:
+		_completion_panel_time_left -= delta
+		if _completion_panel_time_left <= 0.0 and completion_panel.visible:
+			completion_panel.visible = false
 
 	if Input.is_action_just_pressed("toggle_inventory"):
 		toggle_panel("inventory")
@@ -303,6 +316,7 @@ func _update_objectives(announce: bool) -> void:
 	if completed_count >= OBJECTIVE_ORDER.size():
 		if announce and not _all_objectives_announced:
 			push_message("All objectives complete: Celadora v0.1 secured.")
+			_show_completion_panel()
 		_all_objectives_announced = true
 	else:
 		_all_objectives_announced = false
@@ -360,6 +374,7 @@ func _update_world_status(delta: float) -> void:
 
 	if _player == null:
 		world_status_label.text = "World: waiting for player..."
+		route_label.text = "Route: waiting for player..."
 		return
 	if _day_night_cycle == null or _world_spawner == null or _dream_keeper_spawner == null:
 		_cache_world_refs()
@@ -417,6 +432,7 @@ func _update_world_status(delta: float) -> void:
 		biome_text,
 		dream_text
 	]
+	route_label.text = _build_route_text(nav, phase_text, dream_text)
 
 func _show_data_validation_state() -> void:
 	var report: Dictionary = GameServices.get_data_validation_report()
@@ -471,6 +487,55 @@ func _update_compass_text(current_nav: Dictionary) -> void:
 			parts.append("Nearest %s" % str(current_nav.get("name", nav_id)))
 
 	compass_label.text = _join_parts(parts, "  |  ")
+
+func _build_route_text(nav: Dictionary, phase_text: String, dream_text: String) -> String:
+	var objective_id: String = _next_incomplete_objective_id()
+	if objective_id.is_empty():
+		return "Route: All objectives complete. Move to next roadmap milestones."
+
+	match objective_id:
+		"collect_dust":
+			var dust_distance: float = _nearest_resource_distance("", true)
+			if is_inf(dust_distance):
+				return "Route: Locate any Moon Dust node and mine it."
+			return "Route: Mine nearby Moon Dust (%dm)." % int(round(dust_distance))
+		"collect_energy":
+			var crystal_distance: float = _nearest_resource_distance("energy_crystal", false)
+			if is_inf(crystal_distance):
+				return "Route: Locate cyan Energy Crystal deposits."
+			return "Route: Mine Energy Crystal node (%dm)." % int(round(crystal_distance))
+		"salvage_bot":
+			var enemy_distance: float = _nearest_distance_for_group("enemy_bot")
+			if is_inf(enemy_distance):
+				return "Route: Patrol for Greegion Miner Bots."
+			return "Route: Engage nearest Greegion Miner Bot (%dm)." % int(round(enemy_distance))
+		"forge_alloy":
+			return "Route: Open Crafting (C) and forge Celadora Alloy."
+		"unlock_lore":
+			return "Route: Reach %s %dm %s." % [
+				str(nav.get("name", "Lore marker")),
+				int(nav.get("distance_m", 0)),
+				str(nav.get("direction", "N"))
+			]
+		"acquire_dream_seed":
+			if phase_text == "Night":
+				return "Route: Night active. Locate Dream Keeper (%s)." % dream_text
+			return "Route: Wait for night (or F8), then secure Dream Seed."
+		"craft_moonblade":
+			return "Route: Craft Moonblade (Prototype) in Crafting (C)."
+		"prime_ruins_terminal":
+			var ruins_distance: int = _distance_to_location("greegion_ruins")
+			if ruins_distance < 0:
+				return "Route: Reach Greegion Ruins terminal and prime protocol."
+			return "Route: Prime Greegion Ruins terminal (%dm)." % ruins_distance
+		_:
+			return "Route: Continue objective progression."
+
+func _next_incomplete_objective_id() -> String:
+	for objective_id in OBJECTIVE_ORDER:
+		if not bool(_objective_state.get(objective_id, false)):
+			return objective_id
+	return ""
 
 func _toggle_debug_overlay() -> void:
 	_debug_overlay_visible = not _debug_overlay_visible
@@ -578,6 +643,46 @@ func _nearest_distance_for_group(group_name: String) -> float:
 			best = distance
 	return best
 
+func _nearest_resource_distance(item_id_filter: String, require_dust_tag: bool) -> float:
+	if _player == null:
+		return INF
+	var best: float = INF
+	for node in get_tree().get_nodes_in_group("resource_node"):
+		if not (node is Node3D):
+			continue
+		var item_id: String = str(node.get("item_id"))
+		if not item_id_filter.is_empty() and item_id != item_id_filter:
+			continue
+		if require_dust_tag:
+			var item_def: Dictionary = GameServices.get_item_def(item_id)
+			var tags: Array = item_def.get("tags", [])
+			if not tags.has("dust"):
+				continue
+		var node_3d: Node3D = node as Node3D
+		var distance: float = _player.global_position.distance_to(node_3d.global_position)
+		if distance < best:
+			best = distance
+	return best
+
+func _distance_to_location(location_id: String) -> int:
+	if _player == null:
+		return -1
+	var location: Dictionary = GameServices.data_service.get_location(location_id)
+	if location.is_empty():
+		return -1
+	var position_values: Array = location.get("position", [])
+	if position_values.size() != 3:
+		return -1
+	var target: Vector3 = Vector3(
+		float(position_values[0]),
+		float(position_values[1]),
+		float(position_values[2])
+	)
+	return int(round(Vector2(
+		target.x - _player.global_position.x,
+		target.z - _player.global_position.z
+	).length()))
+
 func _distance_label(value: float) -> String:
 	if is_inf(value):
 		return "n/a"
@@ -634,6 +739,43 @@ func _format_elapsed(value: float) -> String:
 		return "--"
 	return "%.0fs" % value
 
+func _show_completion_panel() -> void:
+	if completion_panel == null:
+		return
+	completion_summary.text = _build_completion_summary()
+	completion_meta.text = "Debrief auto-closes in 12s. Reopen objective checklist with O."
+	completion_panel.visible = true
+	_completion_panel_time_left = 12.0
+
+func _build_completion_summary() -> String:
+	var elapsed_sec: float = max(1.0, Time.get_unix_time_from_system() - _session_started_unix)
+	var mined: int = _count_events("mining.node_mined")
+	var crafted: int = _count_events("crafting.recipe_crafted")
+	var defeated: int = _count_events("combat.enemy_defeated")
+	var trades: int = _count_events("market.buy") + _count_events("market.sell")
+	var lore_count: int = GameServices.lore_journal_service.get_unlocked_ids().size()
+	var lines: Array[String] = []
+	lines.append("Session %.0fs | Credits %d" % [elapsed_sec, GameServices.inventory_service.credits])
+	lines.append("Mined %d nodes | Crafted %d recipes | Defeated %d bots | Trades %d" % [mined, crafted, defeated, trades])
+	lines.append("Lore unlocked %d/3 | Ruins terminal primed: %s" % [
+		lore_count,
+		"yes" if GameServices.get_world_flag("ruins_terminal_primed", false) else "no"
+	])
+	lines.append("")
+	lines.append("Next: dedicated server authority + Nakama seams + anti-cheat economy path.")
+	return _join_parts(lines, "\n")
+
+func _count_events(event_type: String) -> int:
+	if GameServices.event_log_service == null:
+		return 0
+	var total: int = 0
+	for event_payload in GameServices.event_log_service.get_all():
+		if typeof(event_payload) != TYPE_DICTIONARY:
+			continue
+		if str(event_payload.get("type", "")) == event_type:
+			total += 1
+	return total
+
 func _on_player_damaged(amount: float) -> void:
 	_damage_flash_alpha = clamp(_damage_flash_alpha + (0.12 + amount * 0.01), 0.0, 0.52)
 	_update_damage_flash(0.0)
@@ -649,6 +791,8 @@ func _on_world_state_reloaded(_state: Dictionary) -> void:
 	_hydrate_objective_state_from_world_flags()
 	if objective_panel.has_method("refresh"):
 		objective_panel.refresh()
+	completion_panel.visible = false
+	_completion_panel_time_left = 0.0
 	_update_objectives(false)
 
 func _update_damage_flash(delta: float) -> void:
@@ -658,8 +802,10 @@ func _update_damage_flash(delta: float) -> void:
 	damage_flash.color = color
 
 func _get_navigation_status() -> Dictionary:
-	var best: Dictionary = {}
-	var best_distance: float = INF
+	var best_locked: Dictionary = {}
+	var best_locked_distance: float = INF
+	var best_any: Dictionary = {}
+	var best_any_distance: float = INF
 
 	for location_id in LORE_ROUTE:
 		var location: Dictionary = GameServices.data_service.get_location(location_id)
@@ -679,16 +825,21 @@ func _get_navigation_status() -> Dictionary:
 			target.z - _player.global_position.z
 		)
 		var distance: float = planar_delta.length()
-		if distance < best_distance:
-			best_distance = distance
-			best = {
-				"id": location_id,
-				"name": LOCATION_SHORT_NAMES.get(location_id, location.get("name", location_id)),
-				"distance_m": int(round(distance)),
-				"direction": _cardinal_from_delta(planar_delta),
-				"unlocked": GameServices.lore_journal_service.is_unlocked(location_id)
-			}
+		var marker_status: Dictionary = {
+			"id": location_id,
+			"name": LOCATION_SHORT_NAMES.get(location_id, location.get("name", location_id)),
+			"distance_m": int(round(distance)),
+			"direction": _cardinal_from_delta(planar_delta),
+			"unlocked": GameServices.lore_journal_service.is_unlocked(location_id)
+		}
+		if distance < best_any_distance:
+			best_any_distance = distance
+			best_any = marker_status
+		if not bool(marker_status.get("unlocked", false)) and distance < best_locked_distance:
+			best_locked_distance = distance
+			best_locked = marker_status
 
+	var best: Dictionary = best_locked if not best_locked.is_empty() else best_any
 	if best.is_empty():
 		return {
 			"id": "none",

@@ -37,13 +37,15 @@ Celadora is an open-source sci-fi fantasy RPG prototype built in Godot 4.3. This
 
 HUD notes:
 - Top row: compass and marker bearings
-- Bottom row 1: current objective progression
-- Bottom row 2: world status (day/night, biome, Dream Keeper window, next lore marker direction/distance)
-- Bottom row 3: contextual interaction hint (mine/attack/interact target)
+- Bottom row 1: dynamic route guidance for the next incomplete objective
+- Bottom row 2: current objective progression
+- Bottom row 3: world status (day/night, biome, Dream Keeper window, next lore marker direction/distance)
+- Bottom row 4: contextual interaction hint (mine/attack/interact target)
 - Center status line: current target integrity/HP
 - First-person viewmodel: arms, hands, and active tool are visible; crafted `Moonblade (Prototype)` auto-equips visually
-- Bottom row 4: system controls (inventory/crafting/lore/market/interact/save/reset)
-- Bottom row 5: movement controls
+- Completion debrief panel appears automatically when all v0.1 objectives are done, with run summary stats
+- Bottom row 5: system controls (inventory/crafting/lore/market/interact/save/reset)
+- Bottom row 6: movement controls
 - Hit feedback: lightweight red flash when taking damage
 
 ## Gameplay Loop in v0.1
@@ -74,6 +76,8 @@ Objective reliability notes:
 - Marketplace includes `Quick Sell Bot Scrap` for faster early-economy flow.
 - Event log service records key gameplay actions for future server-authoritative migration.
 - Objectives are now latched and persisted via `world_state` flags so completed milestones stay complete.
+- Save service now uses schema migration (`schema_version`) and normalizes legacy saves into current objective/world-state flags.
+- Lore marker beacons now highlight the nearest unfinished marker to reinforce route clarity.
 
 ## Data-Driven Balancing
 All game data is editable JSON under `/data` and loaded at runtime.

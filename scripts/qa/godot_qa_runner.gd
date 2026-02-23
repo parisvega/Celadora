@@ -171,6 +171,7 @@ func _run_checks() -> void:
 	var ruins_terminal_starts_locked: bool = false
 	var ruins_terminal_can_be_primed: bool = false
 	var save_load_world_flag_roundtrip: bool = false
+	var save_legacy_migration_ok: bool = false
 	if data_service != null:
 		var required_items := [
 			"dust_blue", "dust_green", "dust_red", "dust_orange",
@@ -318,6 +319,30 @@ func _run_checks() -> void:
 					save_service.load_game()
 					var reloaded_flag: bool = bool(game_services.call("get_world_flag", "ruins_terminal_primed", false))
 					save_load_world_flag_roundtrip = write_ok and saved_flag and reloaded_flag
+		if save_service != null and save_service.has_method("normalize_state_for_load"):
+			var legacy_state: Dictionary = {
+				"version": "0.1",
+				"player_state": {"position": [2, 8, -3], "health": 90, "stamina": 70, "shield": 4},
+				"inventory": {
+					"dust_blue": 2,
+					"energy_crystal": 1,
+					"moonblade_prototype": 1,
+					"dream_seed": 1
+				},
+				"credits": 33,
+				"unlocked_lore": ["enoks_kingdom_ridge", "makunas_shore", "greegion_ruins", "makunas_shore"],
+				"world_state": {"ruins_terminal_primed": true},
+				"event_log": [{"type": "legacy"}]
+			}
+			var migrated: Dictionary = save_service.normalize_state_for_load(legacy_state)
+			var migrated_world: Dictionary = migrated.get("world_state", {})
+			save_legacy_migration_ok = (
+				int(migrated.get("schema_version", 0)) >= 2 and
+				int(migrated.get("credits", -1)) == 33 and
+				bool(migrated_world.get("objective_collect_energy_complete", false)) and
+				bool(migrated_world.get("objective_unlock_lore_complete", false)) and
+				bool(migrated_world.get("objective_prime_ruins_terminal_complete", false))
+			)
 
 	_add_check("required_items_loaded", items_ok, {}, "critical")
 	_add_check("viewmodel_config_loaded", viewmodel_cfg_ok, {}, "critical")
@@ -331,6 +356,7 @@ func _run_checks() -> void:
 	_add_check("ruins_terminal_starts_locked", ruins_terminal_starts_locked, {}, "critical")
 	_add_check("ruins_terminal_can_be_primed", ruins_terminal_can_be_primed, {}, "critical")
 	_add_check("save_load_world_flag_roundtrip", save_load_world_flag_roundtrip, {}, "critical")
+	_add_check("save_legacy_migration", save_legacy_migration_ok, {}, "critical")
 
 	main.queue_free()
 	await process_frame

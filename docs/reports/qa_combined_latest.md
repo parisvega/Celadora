@@ -1,10 +1,10 @@
 # Celadora QA Combined Latest
 
-- Generated: 2026-02-23T19:25:40Z
+- Generated: 2026-02-23T22:59:12Z
 
 ## Headless QA
 - Source: `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.json`
-- Result: PASS (22/22 passed)
+- Result: PASS (23/23 passed)
 
 ## Browser Objective QA
 - Source: `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_browser_objective_latest.json`
@@ -14,5 +14,5 @@
 
 ## Goal Audit Snapshot
 - Source: `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/goals_status_latest.md`
-- PASS lines: 8
+- PASS lines: 0
 - CHECK/FAIL lines: 0
