@@ -61,10 +61,22 @@ const REQUIRED_DUST_MODIFIERS = {
 	"dust_silver": {"credit_gain_multiplier": 0.15}
 }
 
+const DUST_RARITY_LEVELS = ["common", "uncommon", "rare", "epic", "legendary"]
+const SUPPORTED_DUST_SHAPES = ["orb", "cube", "tetra", "prism", "capsule", "ring", "octa", "spindle"]
+const RARITY_EXOTIC_MIN = {
+	"common": 0,
+	"uncommon": 1,
+	"rare": 1,
+	"epic": 2,
+	"legendary": 3
+}
+
 var items_by_id: Dictionary = {}
 var recipes_by_id: Dictionary = {}
 var enemies_by_id: Dictionary = {}
 var moons: Array = []
+var moons_by_id: Dictionary = {}
+var moon_by_dust_item: Dictionary = {}
 var locations_by_id: Dictionary = {}
 var viewmodel_config: Dictionary = {}
 var validation_errors: Array[String] = []
@@ -84,6 +96,8 @@ func load_all() -> bool:
 	recipes_by_id = _index_by_id("recipes", recipe_rows)
 	enemies_by_id = _index_by_id("enemies", enemy_rows)
 	moons = _load_array("moons")
+	moons_by_id = _index_by_id("moons", moons)
+	_rebuild_moon_dust_map()
 	locations_by_id = _index_by_id("locations", location_rows)
 	viewmodel_config = viewmodel_dict
 
@@ -108,6 +122,52 @@ func get_enemy(enemy_id: String) -> Dictionary:
 
 func get_moons() -> Array:
 	return moons.duplicate(true)
+
+func get_moon(moon_id: String) -> Dictionary:
+	return moons_by_id.get(moon_id, {})
+
+func get_moon_for_dust_item(item_id: String) -> Dictionary:
+	var moon_id: String = str(moon_by_dust_item.get(item_id, ""))
+	if moon_id.is_empty():
+		return {}
+	return get_moon(moon_id)
+
+func get_dust_profile(item_id: String) -> Dictionary:
+	var item_def: Dictionary = get_item(item_id)
+	var profile: Dictionary = item_def.get("dust_profile", {}).duplicate(true)
+	if profile.is_empty():
+		return {}
+	if not profile.has("moon_id"):
+		var moon_def: Dictionary = get_moon_for_dust_item(item_id)
+		if not moon_def.is_empty():
+			profile["moon_id"] = str(moon_def.get("id", ""))
+	if not profile.has("shape"):
+		profile["shape"] = "orb"
+	if not profile.has("gravity_scale"):
+		profile["gravity_scale"] = 1.0
+	if not profile.has("bounce"):
+		profile["bounce"] = 0.2
+	if not profile.has("drag"):
+		profile["drag"] = 0.12
+	if not profile.has("glow_strength"):
+		profile["glow_strength"] = 0.2
+	if not profile.has("rarity"):
+		profile["rarity"] = "common"
+	return profile
+
+func get_dust_color(item_id: String) -> Color:
+	var moon_def: Dictionary = get_moon_for_dust_item(item_id)
+	if moon_def.is_empty():
+		var profile: Dictionary = get_dust_profile(item_id)
+		if profile.has("moon_id"):
+			moon_def = get_moon(str(profile.get("moon_id", "")))
+	if not moon_def.is_empty():
+		var color_hex: String = str(moon_def.get("color", ""))
+		if Color.html_is_valid(color_hex):
+			return Color.html(color_hex)
+	if item_id == "energy_crystal":
+		return Color(0.28, 0.94, 0.94)
+	return Color(0.8, 0.8, 0.8)
 
 func get_location(location_id: String) -> Dictionary:
 	return locations_by_id.get(location_id, {})
@@ -205,6 +265,78 @@ func _validate_items() -> void:
 					"Dust item '%s' modifier '%s' expected %.2f, got %.2f." %
 					[dust_id, stat_key, expected_value, actual_value]
 				)
+
+	var shape_claims: Dictionary = {}
+	var glow_min: float = 1.0
+	var glow_max: float = 0.0
+	for dust_id in REQUIRED_DUST_IDS:
+		var dust_item: Dictionary = items_by_id.get(dust_id, {})
+		if dust_item.is_empty():
+			continue
+		var profile: Dictionary = dust_item.get("dust_profile", {})
+		if typeof(profile) != TYPE_DICTIONARY or profile.is_empty():
+			_push_error("Dust item '%s' requires dust_profile." % dust_id)
+			continue
+		for field_name in ["moon_id", "shape", "gravity_scale", "glow_strength"]:
+			if not profile.has(field_name):
+				_push_error("Dust item '%s' dust_profile missing '%s'." % [dust_id, field_name])
+
+		var shape_id: String = str(profile.get("shape", ""))
+		if not SUPPORTED_DUST_SHAPES.has(shape_id):
+			_push_error("Dust item '%s' uses unsupported shape '%s'." % [dust_id, shape_id])
+		elif shape_claims.has(shape_id):
+			_push_error("Dust shape '%s' must be unique per moon dust item." % shape_id)
+		else:
+			shape_claims[shape_id] = dust_id
+
+		var moon_id: String = str(profile.get("moon_id", ""))
+		if moon_id.is_empty() or not moons_by_id.has(moon_id):
+			_push_error("Dust item '%s' references unknown moon_id '%s'." % [dust_id, moon_id])
+		else:
+			var moon_def: Dictionary = moons_by_id.get(moon_id, {})
+			var expected_dust_id: String = "dust_%s" % str(moon_def.get("dust_type", "")).to_lower()
+			if expected_dust_id != dust_id:
+				_push_error(
+					"Dust item '%s' must map to moon '%s' dust_type (%s)." %
+					[dust_id, moon_id, expected_dust_id]
+				)
+
+		var gravity_scale: float = float(profile.get("gravity_scale", 1.0))
+		var glow_strength: float = float(profile.get("glow_strength", 0.0))
+		var bounce: float = float(profile.get("bounce", 0.2))
+		var drag: float = float(profile.get("drag", 0.12))
+		glow_min = min(glow_min, glow_strength)
+		glow_max = max(glow_max, glow_strength)
+		if gravity_scale < 0.1 or gravity_scale > 3.0:
+			_push_error("Dust item '%s' gravity_scale must be between 0.1 and 3.0." % dust_id)
+		if glow_strength < 0.0 or glow_strength > 1.0:
+			_push_error("Dust item '%s' glow_strength must be between 0.0 and 1.0." % dust_id)
+		if bounce < 0.0 or bounce > 0.95:
+			_push_error("Dust item '%s' bounce must be between 0.0 and 0.95." % dust_id)
+		if drag < 0.0 or drag > 0.9:
+			_push_error("Dust item '%s' drag must be between 0.0 and 0.9." % dust_id)
+		var rarity: String = str(profile.get("rarity", "common")).to_lower()
+		if not DUST_RARITY_LEVELS.has(rarity):
+			_push_error("Dust item '%s' rarity '%s' is unsupported." % [dust_id, rarity])
+			continue
+
+		var baseline_modifier: Dictionary = REQUIRED_DUST_MODIFIERS.get(dust_id, {})
+		var actual_modifier: Dictionary = dust_item.get("modifier", {})
+		var exotic_count: int = 0
+		for stat_key in actual_modifier.keys():
+			if not baseline_modifier.has(stat_key):
+				exotic_count += 1
+		var required_exotic: int = int(RARITY_EXOTIC_MIN.get(rarity, 0))
+		if exotic_count < required_exotic:
+			_push_error(
+				"Dust item '%s' rarity '%s' requires at least %d exotic modifier(s), found %d." %
+				[dust_id, rarity, required_exotic, exotic_count]
+			)
+
+	if abs(glow_min - 0.0) > 0.0001:
+		_push_error("Dust glow spectrum must include one no-glow type (glow_strength 0.0).")
+	if abs(glow_max - 1.0) > 0.0001:
+		_push_error("Dust glow spectrum must include one fully luminous type (glow_strength 1.0).")
 
 func _validate_recipes() -> void:
 	for recipe_id in REQUIRED_RECIPE_IDS:
@@ -345,6 +477,18 @@ func _validate_cross_references() -> void:
 				"Moon '%s' dust_type maps to missing item '%s'." %
 				[moon_def.get("id", "?"), dust_item_id]
 			)
+
+func _rebuild_moon_dust_map() -> void:
+	moon_by_dust_item.clear()
+	for moon_def in moons:
+		if typeof(moon_def) != TYPE_DICTIONARY:
+			continue
+		var moon_id: String = str(moon_def.get("id", ""))
+		var dust_type: String = str(moon_def.get("dust_type", "")).to_lower()
+		if moon_id.is_empty() or dust_type.is_empty():
+			continue
+		var dust_item_id: String = "dust_%s" % dust_type
+		moon_by_dust_item[dust_item_id] = moon_id
 
 func _emit_validation_report() -> void:
 	for warning_text in validation_warnings:

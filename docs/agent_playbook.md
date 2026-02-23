@@ -27,6 +27,8 @@ This playbook is optimized for human developers and AI agents collaborating on r
 - [ ] Verify objective row + world status target + interaction hint + world visibility in browser
 - [ ] Verify first-person arms/hands/tool are visible and anchored (no world clipping)
 - [ ] Verify left-click swing timing aligns with mine/attack resolution
+- [ ] Verify moon dust visual identity (moon color + unique shape + glow tier) across all 8 dust types
+- [ ] Verify dropped moon dust physics differ by type (gravity/bounce/drag feel)
 - [ ] Verify objective checklist panel (`O`) and target HP/integrity status near crosshair
 - [ ] Verify Dream status transitions (`Dormant` -> `ETA`/`Present`) and seed drop loop at night
 - [ ] Verify compass bearings + marker beacon visibility + debug overlay (`F3`)

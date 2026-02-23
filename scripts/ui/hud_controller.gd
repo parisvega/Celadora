@@ -38,7 +38,8 @@ const OBJECTIVE_ORDER = [
 	"forge_alloy",
 	"unlock_lore",
 	"acquire_dream_seed",
-	"craft_moonblade"
+	"craft_moonblade",
+	"prime_ruins_terminal"
 ]
 
 const OBJECTIVE_TITLES = {
@@ -48,7 +49,8 @@ const OBJECTIVE_TITLES = {
 	"forge_alloy": "Craft Celadora Alloy",
 	"unlock_lore": "Unlock all 3 lore markers",
 	"acquire_dream_seed": "Acquire a Dream Seed at night",
-	"craft_moonblade": "Craft Moonblade (Prototype)"
+	"craft_moonblade": "Craft Moonblade (Prototype)",
+	"prime_ruins_terminal": "Prime the Greegion Ruins terminal"
 }
 
 const LORE_ROUTE = [
@@ -82,6 +84,8 @@ func _ready() -> void:
 	GameServices.lore_journal_service.entry_unlocked.connect(_on_lore_entry_unlocked)
 	GameServices.marketplace_service.listings_updated.connect(_on_market_updated)
 	GameServices.crafting_service.crafted.connect(_on_item_crafted)
+	GameServices.world_state_changed.connect(_on_world_state_changed)
+	GameServices.world_state_reloaded.connect(_on_world_state_reloaded)
 
 	_refresh_all_panels()
 	_update_objectives(false)
@@ -243,6 +247,20 @@ func _on_interaction_target_changed(status: Dictionary) -> void:
 				float(status.get("hp", 0.0)),
 				float(status.get("hp_max", 0.0))
 			]
+		"terminal":
+			var state_text: String = str(status.get("state", "locked")).capitalize()
+			var missing_count: int = int(status.get("requirements_missing", 0))
+			if missing_count > 0:
+				target_status_label.text = "%s %s (%d req missing)" % [
+					str(status.get("name", "Terminal")),
+					state_text,
+					missing_count
+				]
+			else:
+				target_status_label.text = "%s %s" % [
+					str(status.get("name", "Terminal")),
+					state_text
+				]
 		_:
 			var action: String = str(status.get("action", ""))
 			var name_text: String = str(status.get("name", "Target"))
@@ -295,6 +313,8 @@ func _is_objective_complete(objective_id: String) -> bool:
 			return GameServices.inventory_service.get_quantity("dream_seed") >= 1
 		"craft_moonblade":
 			return GameServices.inventory_service.get_quantity("moonblade_prototype") >= 1
+		"prime_ruins_terminal":
+			return GameServices.get_world_flag("ruins_terminal_primed", false)
 		_:
 			return false
 
@@ -510,6 +530,16 @@ func _join_parts(parts: Array[String], separator: String) -> String:
 func _on_player_damaged(amount: float) -> void:
 	_damage_flash_alpha = clamp(_damage_flash_alpha + (0.12 + amount * 0.01), 0.0, 0.52)
 	_update_damage_flash(0.0)
+
+func _on_world_state_changed(_flag_id: String, _value: Variant) -> void:
+	if objective_panel.has_method("refresh"):
+		objective_panel.refresh()
+	_update_objectives(true)
+
+func _on_world_state_reloaded(_state: Dictionary) -> void:
+	if objective_panel.has_method("refresh"):
+		objective_panel.refresh()
+	_update_objectives(false)
 
 func _update_damage_flash(delta: float) -> void:
 	_damage_flash_alpha = max(_damage_flash_alpha - delta * 1.8, 0.0)

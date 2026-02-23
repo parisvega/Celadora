@@ -10,3 +10,7 @@ build/web/
 # Local run state
 *.log
 *.pid
+
+# QA run artifacts (keep qa_latest.* tracked)
+docs/reports/headless_qa_*.md
+docs/reports/headless_qa_*.json

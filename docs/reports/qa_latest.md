@@ -1,8 +1,8 @@
 # Celadora Headless QA Report
 
-- Started: 2026-02-22T21:24:31
-- Ended: 2026-02-22T21:24:32
-- Result: PASS (11/11 passed)
+- Started: 2026-02-23T09:33:49
+- Ended: 2026-02-23T09:33:50
+- Result: PASS (21/21 passed)
 
 ## Checks
 
@@ -15,7 +15,17 @@
 | viewmodel_meshes_ready | PASS | critical | {"arm_left":true,"arm_right":true,"hand_left":true,"hand_right":true,"tool_mesh":true} |
 | viewmodel_unshaded_material | PASS | critical | {"shading_mode":0} |
 | viewmodel_has_active_tool | PASS | critical | {"active_tool":"miner"} |
-| viewmodel_mine_action_animates | PASS | critical | {"before":[30.0000019073486,-14,-6],"delta":17.3356037139893,"during":[13.8431377410889,-7.71677494049072,-6]} |
+| viewmodel_mine_action_animates | PASS | critical | {"before":[30.0000019073486,-14,-6],"delta":16.4025764465332,"during":[14.7127246856689,-8.05494785308838,-6]} |
 | moon_system_spawns_8 | PASS | critical | {"moon_children":8} |
 | required_items_loaded | PASS | critical | {} |
 | viewmodel_config_loaded | PASS | critical | {} |
+| dust_profiles_loaded | PASS | critical | {} |
+| dust_colors_match_moons | PASS | critical | {} |
+| dust_shapes_are_unique | PASS | critical | {} |
+| dust_glow_spectrum_full_range | PASS | critical | {} |
+| dust_rarity_exotic_scaling | PASS | critical | {} |
+| dust_shape_library_builds | PASS | critical | {} |
+| ruins_terminal_present | PASS | critical | {} |
+| ruins_terminal_starts_locked | PASS | critical | {} |
+| ruins_terminal_can_be_primed | PASS | critical | {} |
+| save_load_world_flag_roundtrip | PASS | critical | {} |

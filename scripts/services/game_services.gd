@@ -1,6 +1,8 @@
 extends Node
 
 signal services_ready
+signal world_state_changed(key: String, value: Variant)
+signal world_state_reloaded(state: Dictionary)
 
 const DataServiceScript = preload("res://scripts/services/data_service.gd")
 const EventLogServiceScript = preload("res://scripts/services/event_log_service.gd")
@@ -19,6 +21,7 @@ var save_service: Node = null
 var lore_journal_service: Node = null
 var marketplace_service: Node = null
 var network_service: Node = null
+var world_state: Dictionary = {}
 
 var _bootstrapped: bool = false
 
@@ -60,8 +63,16 @@ func bootstrap() -> void:
 
 	save_service = SaveServiceScript.new()
 	add_child(save_service)
-	save_service.setup(inventory_service, lore_journal_service, marketplace_service, event_log_service)
+	save_service.setup(
+		inventory_service,
+		lore_journal_service,
+		marketplace_service,
+		event_log_service,
+		self
+	)
+	save_service.save_loaded.connect(_on_save_loaded)
 	save_service.load_game()
+	_set_world_state_from_loaded(save_service.get_loaded_state())
 
 	_bootstrapped = true
 	services_ready.emit()
@@ -83,6 +94,21 @@ func get_recipe_def(recipe_id: String) -> Dictionary:
 func get_data_validation_report() -> Dictionary:
 	return data_service.get_validation_report()
 
+func get_world_state() -> Dictionary:
+	return world_state.duplicate(true)
+
+func set_world_state(state: Dictionary) -> void:
+	world_state = state.duplicate(true)
+	world_state_reloaded.emit(get_world_state())
+
+func get_world_flag(flag_id: String, default_value: bool = false) -> bool:
+	return bool(world_state.get(flag_id, default_value))
+
+func set_world_flag(flag_id: String, enabled: bool) -> void:
+	world_state[flag_id] = enabled
+	world_state_changed.emit(flag_id, enabled)
+	log_event("world.flag_changed", {"flag_id": flag_id, "enabled": enabled})
+
 func log_event(event_type: String, payload: Dictionary = {}, context: Dictionary = {}) -> Dictionary:
 	if event_log_service == null:
 		return {}
@@ -96,6 +122,8 @@ func reset_local_progress() -> Dictionary:
 	inventory_service.clear()
 	lore_journal_service.set_unlocked_ids([])
 	marketplace_service.load_state({})
+	world_state = {}
+	world_state_reloaded.emit({})
 	if event_log_service:
 		event_log_service.clear()
 		event_log_service.record("system.progress_reset", {"save_path": "user://savegame_v01.json"})
@@ -105,3 +133,10 @@ func reset_local_progress() -> Dictionary:
 		"reason": "Local progress reset." if deleted else "Failed to reset save file.",
 		"save_path": "user://savegame_v01.json"
 	}
+
+func _on_save_loaded(state: Dictionary) -> void:
+	_set_world_state_from_loaded(state)
+
+func _set_world_state_from_loaded(state: Dictionary) -> void:
+	var loaded_world_state: Dictionary = state.get("world_state", {})
+	set_world_state(loaded_world_state)

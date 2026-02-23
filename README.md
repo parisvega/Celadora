@@ -50,16 +50,26 @@ HUD notes:
 - Spawn on Celadora with eight visible moons.
 - First-person embodiment: visible arms/hands/tool with motion sway, bob, fatigue shake, and hit kick.
 - Mine dust fragments and energy crystals.
+- Moon dust identity loop:
+  - each dust type now matches its moon color exactly,
+  - each moon dust has a unique particle geometry,
+  - each moon dust has distinct gravity/bounce/drag in-world behavior when dropped.
+- Glow spectrum:
+  - dust glow is data-driven per type (`0.0` no glow -> `1.0` fully luminous).
+- Rarity power curve:
+  - rarer dust tiers include extra “exotic” stat hooks (for example `critical_chance`, `gravity_resistance`, `jump_boost`).
 - Fight Greegion Miner Bots.
 - Craft `Celadora Alloy` and `Moonblade (Prototype)`.
 - Unlock lore entries at Enok's Kingdom Ridge, Makuna's Shore, and Greegion Ruins.
 - Encounter rare Dream Keepers at night for `Dream Seed` drops.
+- Prime the locked Greegion Ruins terminal after meeting requirements (Moonblade + Dream Seed + lore unlocks).
 - Use local marketplace listings with Celador Credits.
 
 Objective reliability notes:
 - Starter resource cache now spawns near the initial area (multiple dust types + energy crystals).
 - Dream Keeper now guarantees at least one night encounter after a short delay if you still need a `Dream Seed`.
 - Lore markers now use taller pulsing beacons and switch to completion tint once unlocked.
+- Ruins terminal now exposes clear missing-requirements messaging and a primed future-boss hook state.
 - Marketplace includes `Quick Sell Bot Scrap` for faster early-economy flow.
 - Event log service records key gameplay actions for future server-authoritative migration.
 
@@ -73,6 +83,10 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 2. Provide fields:
    - `id`, `name`, `category`, `tags`, `stackable`, `max_stack`, `base_value`, `description`, `modifier`
 3. If it is dust, include `"dust"` in `tags` to make crafting rules discover it.
+4. For moon dust, include a `dust_profile` object with:
+   - `moon_id`, `shape`, `gravity_scale`, `bounce`, `drag`, `glow_strength`, `rarity`
+5. Keep `dust_profile.shape` unique per moon dust type so each particle silhouette is distinct.
+6. Set `glow_strength` in the `0.0` to `1.0` range to control emissive intensity.
 
 ### Add a New Recipe
 1. Add recipe object to `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/data/recipes.json`.
@@ -104,6 +118,7 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 - Autoload singleton: `GameServices`
 - Modular services: inventory, crafting, save, lore, marketplace, network stub.
 - Provider seam: `NetworkService` interface + `LocalNetworkService` implementation.
+- Persistent world progression seam: `GameServices.world_state` (used by ruins-terminal state and future world flags).
 - Economy isolation: disabled `TokenBridge` stubs in `/scripts/economy`.
 
 ## Developer Shortcuts (DX)
@@ -122,6 +137,10 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
   - Outputs:
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.md`
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.json`
+- Run v0.1 goal audit report:
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/goal_check.sh`
+  - Output:
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/goals_status_latest.md`
 
 ## AI Agent Workflow (AX)
 - See:

@@ -15,6 +15,7 @@
 - `LoreJournalService`: unlock tracking for location-based lore entries.
 - `MarketplaceService`: local listing simulation with provider seam for server authority.
 - `NetworkService` + `LocalNetworkService`: future MMO/Nakama insertion point.
+- `GameServices.world_state`: lightweight persistent world flags (for example `ruins_terminal_primed`).
 
 ## Core Controllers
 - `PlayerController`: movement, interaction ray, queued action-impact windows, manual save trigger.
@@ -23,6 +24,7 @@
 - `WorldSpawner`: deterministic chunked block terrain + biome coloration.
 - `ResourceSpawner`: data-aware resource node placement with guaranteed starter pack near spawn.
 - `DreamKeeperSpawner`: night-gated encounter scheduler with guaranteed first-night seed access path.
+- `RuinsTerminal`: locked-door boss hook with requirement-aware priming state and save/load persistence.
 
 ## Data-Driven Contracts
 All balance data is loaded at runtime:
@@ -32,6 +34,12 @@ All balance data is loaded at runtime:
 - `data/moons.json`
 - `data/locations.json`
 - `data/viewmodel.json`
+
+Moon dust runtime identity is also data-driven via `items[].dust_profile`:
+- `moon_id` binds dust color to the source moon definition.
+- `shape` selects a unique mesh silhouette per moon dust.
+- `gravity_scale`, `bounce`, `drag` drive dropped-particle terrain interaction.
+- `glow_strength` controls emissive intensity from no glow to fully luminous.
 
 ## MMO Expansion Seams
 - Replace `LocalNetworkService` with a Nakama-backed implementation while preserving service signatures.

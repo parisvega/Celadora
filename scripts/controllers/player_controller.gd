@@ -17,6 +17,8 @@ signal damaged(amount: float)
 @onready var interaction_ray: RayCast3D = $Camera/InteractionRay
 @onready var viewmodel: Node = $Camera/ViewModelRig
 
+const PickupItemScene = preload("res://scenes/world/PickupItem.tscn")
+
 var max_health: float = 100.0
 var max_stamina: float = 100.0
 var max_shield: float = 100.0
@@ -37,16 +39,16 @@ var _pending_action_target_id: int = 0
 var _pending_action_payload: Dictionary = {}
 var _pending_action_timer: float = 0.0
 
-const DUST_COLOR_BY_ITEM = {
-	"dust_blue": Color(0.38, 0.62, 1.0),
-	"dust_green": Color(0.36, 0.84, 0.56),
-	"dust_red": Color(0.9, 0.35, 0.35),
-	"dust_orange": Color(0.93, 0.61, 0.31),
-	"dust_yellow": Color(0.92, 0.82, 0.35),
-	"dust_white": Color(0.95, 0.95, 0.98),
-	"dust_black": Color(0.34, 0.36, 0.42),
-	"dust_silver": Color(0.73, 0.77, 0.85)
-}
+const DUST_ITEM_IDS = [
+	"dust_blue",
+	"dust_green",
+	"dust_red",
+	"dust_orange",
+	"dust_yellow",
+	"dust_white",
+	"dust_black",
+	"dust_silver"
+]
 
 func _ready() -> void:
 	_setup_input_map()
@@ -101,12 +103,15 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("primary_action"):
 		_handle_primary_action()
 
-	var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
+	var gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+	var gravity_resistance: float = clamp(GameServices.inventory_service.get_modifier_value("gravity_resistance", 0.0), 0.0, 0.75)
+	var effective_gravity: float = gravity * (1.0 - gravity_resistance)
 	if not is_on_floor():
-		velocity.y -= gravity * delta
+		velocity.y -= effective_gravity * delta
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
-		velocity.y = jump_velocity
+		var jump_boost: float = max(0.0, GameServices.inventory_service.get_modifier_value("jump_boost", 0.0))
+		velocity.y = jump_velocity * (1.0 + jump_boost)
 
 	var movement_input = Vector2(
 		Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
@@ -189,9 +194,14 @@ func _begin_attack_action(enemy: Object) -> void:
 		return
 	_attack_cd_left = attack_cooldown
 	var damage: float = base_damage * (1.0 + GameServices.inventory_service.get_modifier_value("damage_bonus", 0.0))
+	var critical_chance: float = clamp(GameServices.inventory_service.get_modifier_value("critical_chance", 0.0), 0.0, 0.75)
+	var is_critical: bool = randf() < critical_chance
+	if is_critical:
+		damage *= 1.65
 	var impact_time: float = _play_viewmodel_action("attack")
 	_queue_pending_action("attack", enemy, {
 		"damage": damage,
+		"is_critical": is_critical,
 		"queued_from": [global_position.x, global_position.y, global_position.z]
 	}, impact_time)
 
@@ -243,7 +253,12 @@ func _resolve_mine_action(target: Object, payload: Dictionary) -> void:
 	var quantity = int(result.get("quantity", 1))
 	var credits_reward = int(result.get("credits", 0))
 	if item_id != "":
-		GameServices.inventory_service.add_item(item_id, quantity)
+		var item_def: Dictionary = GameServices.get_item_def(item_id)
+		var tags: Array = item_def.get("tags", [])
+		if tags.has("dust"):
+			_spawn_mined_dust_pickup(item_id, quantity, _drop_position_from_target(target))
+		else:
+			GameServices.inventory_service.add_item(item_id, quantity)
 	if credits_reward > 0:
 		GameServices.inventory_service.add_credits(credits_reward)
 
@@ -261,9 +276,11 @@ func _resolve_attack_action(target: Object, payload: Dictionary) -> void:
 		return
 
 	var damage: float = float(payload.get("damage", base_damage))
+	var is_critical: bool = bool(payload.get("is_critical", false))
 	target.take_damage(damage)
 	var event_payload: Dictionary = {
 		"damage": damage,
+		"is_critical": is_critical,
 		"target": target.name,
 		"player_position": [global_position.x, global_position.y, global_position.z]
 	}
@@ -273,6 +290,10 @@ func _resolve_attack_action(target: Object, payload: Dictionary) -> void:
 	)
 	GameServices.network_service.submit_combat_event(event_envelope)
 	GameServices.log_event("combat.player_attack", event_payload)
+	if is_critical:
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud:
+			hud.push_message("Critical strike %.0f" % damage)
 
 func receive_damage(amount: float) -> void:
 	if amount > 0.0:
@@ -497,11 +518,11 @@ func _refresh_viewmodel_state() -> void:
 func _get_dominant_dust_color() -> Color:
 	var best_color: Color = Color(0.62, 0.78, 1.0)
 	var best_qty: int = -1
-	for dust_item_id in DUST_COLOR_BY_ITEM.keys():
+	for dust_item_id in DUST_ITEM_IDS:
 		var qty: int = GameServices.inventory_service.get_quantity(dust_item_id)
 		if qty > best_qty:
 			best_qty = qty
-			best_color = DUST_COLOR_BY_ITEM[dust_item_id]
+			best_color = GameServices.data_service.get_dust_color(dust_item_id)
 	return best_color
 
 func _target_within_reach(target: Object, max_distance: float) -> bool:
@@ -509,3 +530,35 @@ func _target_within_reach(target: Object, max_distance: float) -> bool:
 		var target_node: Node3D = target as Node3D
 		return global_position.distance_to(target_node.global_position) <= max_distance
 	return true
+
+func _drop_position_from_target(target: Object) -> Vector3:
+	if target is Node3D:
+		var target_node: Node3D = target as Node3D
+		return target_node.global_position + Vector3(0.0, 0.5, 0.0)
+	return global_position + (-camera.global_transform.basis.z * 1.0) + Vector3(0.0, 1.1, 0.0)
+
+func _spawn_mined_dust_pickup(item_id: String, quantity: int, position_hint: Vector3) -> void:
+	if PickupItemScene == null:
+		GameServices.inventory_service.add_item(item_id, quantity)
+		return
+	var pickup = PickupItemScene.instantiate()
+	var parent_node: Node = get_tree().current_scene if get_tree().current_scene != null else get_parent()
+	parent_node.add_child(pickup)
+	pickup.global_position = position_hint
+	pickup.item_id = item_id
+	pickup.quantity = max(quantity, 1)
+	pickup.credits = 0
+
+	var dust_profile: Dictionary = GameServices.data_service.get_dust_profile(item_id)
+	if pickup.has_method("apply_dust_profile") and not dust_profile.is_empty():
+		pickup.apply_dust_profile(dust_profile)
+
+	var gravity_scale: float = clamp(float(dust_profile.get("gravity_scale", 1.0)), 0.1, 3.0)
+	var gravity_pct: float = clamp((gravity_scale - 0.1) / 2.9, 0.0, 1.0)
+	var forward: Vector3 = -camera.global_transform.basis.z.normalized()
+	var side: Vector3 = camera.global_transform.basis.x.normalized() * randf_range(-0.45, 0.45)
+	var launch_speed: float = lerpf(1.8, 0.92, gravity_pct)
+	var lift_speed: float = lerpf(1.9, 0.95, gravity_pct)
+	var launch_velocity: Vector3 = forward * launch_speed + side + Vector3.UP * lift_speed
+	if pickup.has_method("set_initial_motion"):
+		pickup.set_initial_motion(launch_velocity)

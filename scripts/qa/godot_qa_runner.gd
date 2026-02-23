@@ -113,9 +113,23 @@ func _run_checks() -> void:
 		"moon_children": moon_children
 	}, "critical")
 
-	var data_service: Node = get_root().get_node_or_null("GameServices").get("data_service")
+	var game_services: Node = get_root().get_node_or_null("GameServices")
+	var data_service: Node = game_services.get("data_service") if game_services != null else null
+	var inventory_service: Node = game_services.get("inventory_service") if game_services != null else null
+	var lore_service: Node = game_services.get("lore_journal_service") if game_services != null else null
+	var save_service: Node = game_services.get("save_service") if game_services != null else null
 	var items_ok: bool = false
 	var viewmodel_cfg_ok: bool = false
+	var dust_profiles_ok: bool = false
+	var dust_color_match_ok: bool = false
+	var dust_shape_unique_ok: bool = false
+	var dust_glow_spectrum_ok: bool = false
+	var dust_rarity_exotic_ok: bool = false
+	var dust_shape_library_ok: bool = false
+	var ruins_terminal_present: bool = false
+	var ruins_terminal_starts_locked: bool = false
+	var ruins_terminal_can_be_primed: bool = false
+	var save_load_world_flag_roundtrip: bool = false
 	if data_service != null:
 		var required_items := [
 			"dust_blue", "dust_green", "dust_red", "dust_orange",
@@ -130,8 +144,152 @@ func _run_checks() -> void:
 		var cfg: Dictionary = data_service.call("get_viewmodel_config")
 		viewmodel_cfg_ok = not cfg.is_empty() and cfg.has("actions")
 
+		var dust_ids := [
+			"dust_blue", "dust_green", "dust_red", "dust_orange",
+			"dust_yellow", "dust_white", "dust_black", "dust_silver"
+		]
+		var baseline_keys := {
+			"dust_blue": ["stamina_regen"],
+			"dust_green": ["health_regen"],
+			"dust_red": ["damage_bonus"],
+			"dust_orange": ["mining_speed"],
+			"dust_yellow": ["move_speed"],
+			"dust_white": ["shield_regen"],
+			"dust_black": ["aggro_radius_multiplier"],
+			"dust_silver": ["credit_gain_multiplier"]
+		}
+		var rarity_min_exotic := {
+			"common": 0,
+			"uncommon": 1,
+			"rare": 1,
+			"epic": 2,
+			"legendary": 3
+		}
+		var moons_by_id: Dictionary = {}
+		for moon_def in data_service.call("get_moons"):
+			if typeof(moon_def) != TYPE_DICTIONARY:
+				continue
+			moons_by_id[str(moon_def.get("id", ""))] = moon_def
+
+		var shape_claims: Dictionary = {}
+		var glow_values: Array[float] = []
+		dust_profiles_ok = true
+		dust_color_match_ok = true
+		dust_shape_unique_ok = true
+		dust_rarity_exotic_ok = true
+		for dust_id in dust_ids:
+			var item_def: Dictionary = data_service.call("get_item", dust_id)
+			var profile: Dictionary = data_service.call("get_dust_profile", dust_id)
+			if item_def.is_empty() or profile.is_empty():
+				dust_profiles_ok = false
+				continue
+
+			var shape_id: String = str(profile.get("shape", ""))
+			if shape_id.is_empty():
+				dust_profiles_ok = false
+			elif shape_claims.has(shape_id):
+				dust_shape_unique_ok = false
+			else:
+				shape_claims[shape_id] = dust_id
+
+			var glow_strength: float = float(profile.get("glow_strength", -1.0))
+			if glow_strength < 0.0 or glow_strength > 1.0:
+				dust_profiles_ok = false
+			glow_values.append(glow_strength)
+
+			var moon_id: String = str(profile.get("moon_id", ""))
+			var moon_def: Dictionary = moons_by_id.get(moon_id, {})
+			if moon_def.is_empty():
+				dust_profiles_ok = false
+				dust_color_match_ok = false
+			else:
+				var moon_color_hex: String = str(moon_def.get("color", ""))
+				if not Color.html_is_valid(moon_color_hex):
+					dust_profiles_ok = false
+					dust_color_match_ok = false
+				else:
+					var moon_color: Color = Color.html(moon_color_hex)
+					var dust_color: Color = data_service.call("get_dust_color", dust_id)
+					if not _color_approx(dust_color, moon_color):
+						dust_color_match_ok = false
+
+				var expected_dust_suffix: String = str(moon_def.get("dust_type", "")).to_lower()
+				if dust_id.trim_prefix("dust_") != expected_dust_suffix:
+					dust_profiles_ok = false
+
+			var rarity: String = str(profile.get("rarity", "common")).to_lower()
+			var min_exotic: int = int(rarity_min_exotic.get(rarity, 999))
+			var modifier: Dictionary = item_def.get("modifier", {})
+			var baseline: Array = baseline_keys.get(dust_id, [])
+			var exotic_count: int = 0
+			for modifier_key in modifier.keys():
+				if not baseline.has(str(modifier_key)):
+					exotic_count += 1
+			if exotic_count < min_exotic:
+				dust_rarity_exotic_ok = false
+
+		if glow_values.size() == dust_ids.size():
+			var min_glow: float = glow_values[0]
+			var max_glow: float = glow_values[0]
+			for glow_strength in glow_values:
+				min_glow = min(min_glow, glow_strength)
+				max_glow = max(max_glow, glow_strength)
+			dust_glow_spectrum_ok = abs(min_glow - 0.0) <= 0.0001 and abs(max_glow - 1.0) <= 0.0001
+
+		var dust_shape_lib: Script = load("res://scripts/resources/dust_shape_library.gd")
+		var shape_ids: Array = ["orb", "cube", "tetra", "prism", "capsule", "ring", "octa", "spindle"]
+		dust_shape_library_ok = dust_shape_lib != null
+		if dust_shape_library_ok:
+			for shape_id in shape_ids:
+				var mesh: Mesh = dust_shape_lib.call("build_mesh", shape_id, 1.0)
+				var shape: Shape3D = dust_shape_lib.call("build_collision_shape", shape_id, 0.45)
+				if mesh == null or mesh.get_surface_count() <= 0 or shape == null:
+					dust_shape_library_ok = false
+					break
+
+	if game_services != null:
+		var ruins_terminal: Node = main.get_node_or_null("World/GreegionRuins/Terminal")
+		ruins_terminal_present = ruins_terminal != null and ruins_terminal.has_method("interact") and ruins_terminal.has_method("get_interaction_status")
+		if ruins_terminal_present:
+			game_services.call("set_world_flag", "ruins_terminal_primed", false)
+			var terminal_status: Dictionary = ruins_terminal.get_interaction_status()
+			ruins_terminal_starts_locked = str(terminal_status.get("state", "")) == "locked"
+
+			if inventory_service != null and lore_service != null:
+				inventory_service.add_item("moonblade_prototype", 1)
+				inventory_service.add_item("dream_seed", 1)
+				lore_service.set_unlocked_ids([
+					"enoks_kingdom_ridge",
+					"makunas_shore",
+					"greegion_ruins"
+				])
+				var interact_result: Dictionary = ruins_terminal.interact(player)
+				var primed_status: Dictionary = ruins_terminal.get_interaction_status()
+				var world_flag_primed: bool = bool(game_services.call("get_world_flag", "ruins_terminal_primed", false))
+				ruins_terminal_can_be_primed = bool(interact_result.get("ok", false)) and str(primed_status.get("state", "")) == "primed" and world_flag_primed
+
+				if save_service != null and ruins_terminal_can_be_primed:
+					var write_ok: bool = bool(save_service.save_game({"qa_probe": true}))
+					var saved_state: Dictionary = save_service.get_loaded_state()
+					var saved_world_state: Dictionary = saved_state.get("world_state", {})
+					var saved_flag: bool = bool(saved_world_state.get("ruins_terminal_primed", false))
+					game_services.call("set_world_flag", "ruins_terminal_primed", false)
+					save_service.load_game()
+					var reloaded_flag: bool = bool(game_services.call("get_world_flag", "ruins_terminal_primed", false))
+					save_load_world_flag_roundtrip = write_ok and saved_flag and reloaded_flag
+
 	_add_check("required_items_loaded", items_ok, {}, "critical")
 	_add_check("viewmodel_config_loaded", viewmodel_cfg_ok, {}, "critical")
+	_add_check("dust_profiles_loaded", dust_profiles_ok, {}, "critical")
+	_add_check("dust_colors_match_moons", dust_color_match_ok, {}, "critical")
+	_add_check("dust_shapes_are_unique", dust_shape_unique_ok, {}, "critical")
+	_add_check("dust_glow_spectrum_full_range", dust_glow_spectrum_ok, {}, "critical")
+	_add_check("dust_rarity_exotic_scaling", dust_rarity_exotic_ok, {}, "critical")
+	_add_check("dust_shape_library_builds", dust_shape_library_ok, {}, "critical")
+	_add_check("ruins_terminal_present", ruins_terminal_present, {}, "critical")
+	_add_check("ruins_terminal_starts_locked", ruins_terminal_starts_locked, {}, "critical")
+	_add_check("ruins_terminal_can_be_primed", ruins_terminal_can_be_primed, {}, "critical")
+	_add_check("save_load_world_flag_roundtrip", save_load_world_flag_roundtrip, {}, "critical")
 
 	main.queue_free()
 	await process_frame
@@ -157,6 +315,13 @@ func _summary() -> Dictionary:
 		"passed": passed,
 		"failed": failed
 	}
+
+func _color_approx(a: Color, b: Color, epsilon: float = 0.015) -> bool:
+	return (
+		abs(a.r - b.r) <= epsilon and
+		abs(a.g - b.g) <= epsilon and
+		abs(a.b - b.b) <= epsilon
+	)
 
 func _write_reports(report: Dictionary) -> void:
 	var reports_dir: String = ProjectSettings.globalize_path("res://docs/reports")

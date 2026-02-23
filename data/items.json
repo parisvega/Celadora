@@ -8,7 +8,16 @@
     "max_stack": 999,
     "base_value": 6,
     "description": "Fine cerulean powder harvested from Celadora deposits.",
-    "modifier": {"stamina_regen": 0.1}
+    "modifier": {"stamina_regen": 0.1},
+    "dust_profile": {
+      "moon_id": "moon_blue",
+      "shape": "orb",
+      "gravity_scale": 0.62,
+      "bounce": 0.18,
+      "drag": 0.18,
+      "glow_strength": 0.0,
+      "rarity": "common"
+    }
   },
   {
     "id": "dust_green",
@@ -19,7 +28,16 @@
     "max_stack": 999,
     "base_value": 6,
     "description": "Bioluminescent residue with regenerative properties.",
-    "modifier": {"health_regen": 0.08}
+    "modifier": {"health_regen": 0.08},
+    "dust_profile": {
+      "moon_id": "moon_green",
+      "shape": "cube",
+      "gravity_scale": 0.74,
+      "bounce": 0.12,
+      "drag": 0.22,
+      "glow_strength": 0.15,
+      "rarity": "common"
+    }
   },
   {
     "id": "dust_red",
@@ -30,7 +48,16 @@
     "max_stack": 999,
     "base_value": 7,
     "description": "Volatile red particulate that amplifies force output.",
-    "modifier": {"damage_bonus": 0.1}
+    "modifier": {"damage_bonus": 0.1, "critical_chance": 0.03},
+    "dust_profile": {
+      "moon_id": "moon_red",
+      "shape": "tetra",
+      "gravity_scale": 1.12,
+      "bounce": 0.28,
+      "drag": 0.12,
+      "glow_strength": 0.3,
+      "rarity": "uncommon"
+    }
   },
   {
     "id": "dust_orange",
@@ -41,7 +68,16 @@
     "max_stack": 999,
     "base_value": 6,
     "description": "Energetic grains that improve extraction rhythm.",
-    "modifier": {"mining_speed": 0.12}
+    "modifier": {"mining_speed": 0.12, "jump_boost": 0.04},
+    "dust_profile": {
+      "moon_id": "moon_orange",
+      "shape": "prism",
+      "gravity_scale": 0.92,
+      "bounce": 0.22,
+      "drag": 0.15,
+      "glow_strength": 0.42,
+      "rarity": "uncommon"
+    }
   },
   {
     "id": "dust_yellow",
@@ -52,7 +88,16 @@
     "max_stack": 999,
     "base_value": 6,
     "description": "Charged pollen-like dust that lightens movement.",
-    "modifier": {"move_speed": 0.08}
+    "modifier": {"move_speed": 0.08, "gravity_resistance": 0.06},
+    "dust_profile": {
+      "moon_id": "moon_yellow",
+      "shape": "capsule",
+      "gravity_scale": 0.54,
+      "bounce": 0.35,
+      "drag": 0.1,
+      "glow_strength": 0.5,
+      "rarity": "uncommon"
+    }
   },
   {
     "id": "dust_white",
@@ -63,7 +108,16 @@
     "max_stack": 999,
     "base_value": 7,
     "description": "Prismatic dust that stabilizes defensive fields.",
-    "modifier": {"shield_regen": 0.1}
+    "modifier": {"shield_regen": 0.1, "jump_boost": 0.08},
+    "dust_profile": {
+      "moon_id": "moon_white",
+      "shape": "ring",
+      "gravity_scale": 0.4,
+      "bounce": 0.48,
+      "drag": 0.08,
+      "glow_strength": 0.68,
+      "rarity": "rare"
+    }
   },
   {
     "id": "dust_black",
@@ -74,7 +128,20 @@
     "max_stack": 999,
     "base_value": 8,
     "description": "A dense gravitic powder that muffles signatures.",
-    "modifier": {"aggro_radius_multiplier": -0.1}
+    "modifier": {
+      "aggro_radius_multiplier": -0.1,
+      "gravity_resistance": 0.18,
+      "critical_chance": 0.05
+    },
+    "dust_profile": {
+      "moon_id": "moon_black",
+      "shape": "octa",
+      "gravity_scale": 1.6,
+      "bounce": 0.08,
+      "drag": 0.26,
+      "glow_strength": 0.84,
+      "rarity": "epic"
+    }
   },
   {
     "id": "dust_silver",
@@ -85,7 +152,21 @@
     "max_stack": 999,
     "base_value": 9,
     "description": "Reflective lunar residue prized by frontier brokers.",
-    "modifier": {"credit_gain_multiplier": 0.15}
+    "modifier": {
+      "credit_gain_multiplier": 0.15,
+      "critical_chance": 0.08,
+      "jump_boost": 0.12,
+      "gravity_resistance": 0.1
+    },
+    "dust_profile": {
+      "moon_id": "moon_silver",
+      "shape": "spindle",
+      "gravity_scale": 1.0,
+      "bounce": 0.62,
+      "drag": 0.06,
+      "glow_strength": 1.0,
+      "rarity": "legendary"
+    }
   },
   {
     "id": "energy_crystal",

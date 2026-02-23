@@ -35,6 +35,54 @@ jq -e 'map(.dust_type) | sort == ["Black","Blue","Green","Orange","Red","Silver"
   exit 1
 }
 
+jq -e --slurpfile moons data/moons.json '
+  def baseline($id):
+    if $id == "dust_blue" then ["stamina_regen"]
+    elif $id == "dust_green" then ["health_regen"]
+    elif $id == "dust_red" then ["damage_bonus"]
+    elif $id == "dust_orange" then ["mining_speed"]
+    elif $id == "dust_yellow" then ["move_speed"]
+    elif $id == "dust_white" then ["shield_regen"]
+    elif $id == "dust_black" then ["aggro_radius_multiplier"]
+    elif $id == "dust_silver" then ["credit_gain_multiplier"]
+    else [] end;
+  def exotic_min($rarity):
+    if $rarity == "common" then 0
+    elif $rarity == "uncommon" then 1
+    elif $rarity == "rare" then 1
+    elif $rarity == "epic" then 2
+    elif $rarity == "legendary" then 3
+    else 999 end;
+  (map(select(.id | startswith("dust_"))) as $dusts |
+    ($dusts | length) == 8 and
+    ($dusts | all(.dust_profile != null and
+      (.dust_profile.shape | type == "string") and
+      (.dust_profile.moon_id | type == "string") and
+      (.dust_profile.gravity_scale | type == "number") and
+      (.dust_profile.glow_strength | type == "number") and
+      (.dust_profile.rarity | type == "string")
+    )) and
+    (($dusts | map(.dust_profile.shape) | unique | length) == 8) and
+    ($dusts | all((.dust_profile.glow_strength >= 0.0) and (.dust_profile.glow_strength <= 1.0))) and
+    (($dusts | map(.dust_profile.glow_strength) | min) == 0.0) and
+    (($dusts | map(.dust_profile.glow_strength) | max) == 1.0) and
+    ($dusts | all(.dust_profile.moon_id as $mid | ($moons[0] | map(.id) | index($mid) != null))) and
+    ($dusts | all(
+      . as $item |
+      ($item.id | sub("^dust_"; "")) as $expected_dust |
+      (($moons[0] | map(select(.id == $item.dust_profile.moon_id)) | .[0].dust_type | ascii_downcase) == $expected_dust)
+    )) and
+    ($dusts | all(
+      . as $item |
+      (.dust_profile.rarity | ascii_downcase) as $rarity |
+      ((($item.modifier // {}) | keys_unsorted - baseline($item.id) | length) >= exotic_min($rarity))
+    ))
+  )
+' data/items.json >/dev/null || {
+  echo "Dust profiles must define unique shapes, moon mapping, full glow spectrum, and rarity-based exotic modifiers."
+  exit 1
+}
+
 echo "[3/4] Checking required files..."
 required=(
   project.godot
@@ -46,6 +94,7 @@ required=(
   scenes/player/ViewTool_Miner.tscn
   scenes/ui/HUD.tscn
   scenes/ui/ObjectivePanel.tscn
+  scripts/resources/dust_shape_library.gd
   scripts/services/game_services.gd
   scripts/services/event_log_service.gd
   scripts/controllers/player_controller.gd

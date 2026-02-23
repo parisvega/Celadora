@@ -10,13 +10,21 @@ var _inventory_service: Node = null
 var _lore_service: Node = null
 var _marketplace_service: Node = null
 var _event_log_service: Node = null
+var _world_state_provider: Node = null
 var loaded_state: Dictionary = {}
 
-func setup(inventory_service: Node, lore_service: Node, marketplace_service: Node, event_log_service: Node) -> void:
+func setup(
+	inventory_service: Node,
+	lore_service: Node,
+	marketplace_service: Node,
+	event_log_service: Node,
+	world_state_provider: Node = null
+) -> void:
 	_inventory_service = inventory_service
 	_lore_service = lore_service
 	_marketplace_service = marketplace_service
 	_event_log_service = event_log_service
+	_world_state_provider = world_state_provider
 
 func load_game() -> Dictionary:
 	loaded_state = {}
@@ -51,6 +59,7 @@ func save_game(player_state: Dictionary) -> bool:
 		"credits": _inventory_service.credits,
 		"unlocked_lore": _lore_service.get_unlocked_ids(),
 		"marketplace": _marketplace_service.serialize_state(),
+		"world_state": _world_state_provider.get_world_state() if _world_state_provider != null and _world_state_provider.has_method("get_world_state") else {},
 		"event_log": _event_log_service.serialize_state() if _event_log_service != null else []
 	}
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)

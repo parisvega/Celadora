@@ -70,10 +70,10 @@
           -14,
           -6
         ],
-        "delta": 17.3356037139893,
+        "delta": 16.4025764465332,
         "during": [
-          13.8431377410889,
-          -7.71677494049072,
+          14.7127246856689,
+          -8.05494785308838,
           -6
         ]
       },
@@ -104,13 +104,93 @@
       "id": "viewmodel_config_loaded",
       "ok": true,
       "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "dust_profiles_loaded",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "dust_colors_match_moons",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "dust_shapes_are_unique",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "dust_glow_spectrum_full_range",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "dust_rarity_exotic_scaling",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "dust_shape_library_builds",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "ruins_terminal_present",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "ruins_terminal_starts_locked",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "ruins_terminal_can_be_primed",
+      "ok": true,
+      "severity": "critical"
+    },
+    {
+      "details": {
+
+      },
+      "id": "save_load_world_flag_roundtrip",
+      "ok": true,
+      "severity": "critical"
     }
   ],
-  "ended_at": "2026-02-22T21:24:32",
-  "started_at": "2026-02-22T21:24:31",
+  "ended_at": "2026-02-23T09:33:50",
+  "started_at": "2026-02-23T09:33:49",
   "summary": {
     "failed": 0,
-    "passed": 11,
-    "total": 11
+    "passed": 21,
+    "total": 21
   }
 }
