@@ -32,6 +32,7 @@ This playbook is optimized for human developers and AI agents collaborating on r
 - [ ] Verify objective checklist panel (`O`) and target HP/integrity status near crosshair
 - [ ] Verify Dream status transitions (`Dormant` -> `ETA`/`Present`) and seed drop loop at night
 - [ ] Verify compass bearings + marker beacon visibility + debug overlay (`F3`)
+- [ ] Verify spawn telemetry + fast-path timers in debug overlay (`F3`)
 - [ ] Verify dev time skip (`F8`) and event log count updates in debug overlay
 - [ ] Update docs/README if behavior or controls changed
 
@@ -48,6 +49,10 @@ This playbook is optimized for human developers and AI agents collaborating on r
   - `scripts/dev/smoke_check.sh`
 - Full QA agent run (writes reports to `docs/reports`):
   - `scripts/qa/run_qa_agent.sh`
+- Browser objective-flow QA:
+  - `scripts/qa/run_browser_objective_qa.sh 8060`
+- Goal status report:
+  - `scripts/dev/goal_check.sh`
 
 ## Current UX Safety Nets
 - Web renderer compatibility mode for browser stability.

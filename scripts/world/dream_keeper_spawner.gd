@@ -5,7 +5,7 @@ extends Node3D
 @export var pickup_scene: PackedScene
 @export var min_night_spawn_interval_sec: float = 10.0
 @export var max_night_spawn_interval_sec: float = 18.0
-@export var guaranteed_first_spawn_sec: float = 22.0
+@export var guaranteed_first_spawn_sec: float = 14.0
 @export var night_spawn_chance: float = 0.7
 @export var guarantee_if_missing_seed: bool = true
 

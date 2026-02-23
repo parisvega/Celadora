@@ -30,6 +30,8 @@ var _damage_flash_alpha: float = 0.0
 var _all_objectives_announced: bool = false
 var _debug_overlay_visible: bool = false
 var _debug_refresh_left: float = 0.0
+var _objective_sync_busy: bool = false
+var _session_started_unix: float = 0.0
 
 const OBJECTIVE_ORDER = [
 	"collect_dust",
@@ -66,6 +68,7 @@ const LOCATION_SHORT_NAMES = {
 }
 
 func _ready() -> void:
+	_session_started_unix = Time.get_unix_time_from_system()
 	add_to_group("hud")
 	crosshair.text = "+"
 	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Swing (Mine/Attack)  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
@@ -87,6 +90,7 @@ func _ready() -> void:
 	GameServices.world_state_changed.connect(_on_world_state_changed)
 	GameServices.world_state_reloaded.connect(_on_world_state_reloaded)
 
+	_hydrate_objective_state_from_world_flags()
 	_refresh_all_panels()
 	_update_objectives(false)
 	_update_world_status(1.0)
@@ -267,16 +271,22 @@ func _on_interaction_target_changed(status: Dictionary) -> void:
 			target_status_label.text = ("%s %s" % [action, name_text]).strip_edges()
 
 func _update_objectives(announce: bool) -> void:
+	_objective_sync_busy = true
 	var completed_count: int = 0
 	var newly_completed: Array[String] = []
 
 	for objective_id in OBJECTIVE_ORDER:
-		var is_complete: bool = _is_objective_complete(objective_id)
-		var was_complete: bool = bool(_objective_state.get(objective_id, false))
-		_objective_state[objective_id] = is_complete
-		if is_complete:
+		var runtime_complete: bool = _is_objective_complete(objective_id)
+		var flag_key: String = _objective_flag_key(objective_id)
+		var persisted_complete: bool = GameServices.get_world_flag(flag_key, false)
+		var was_complete: bool = bool(_objective_state.get(objective_id, persisted_complete))
+		var now_complete: bool = was_complete or persisted_complete or runtime_complete
+		_objective_state[objective_id] = now_complete
+		if now_complete:
 			completed_count += 1
-		if announce and is_complete and not was_complete:
+		if now_complete and not persisted_complete:
+			GameServices.set_world_flag(flag_key, true)
+		if announce and now_complete and not was_complete:
 			newly_completed.append(objective_id)
 
 	for objective_id in newly_completed:
@@ -296,6 +306,7 @@ func _update_objectives(announce: bool) -> void:
 		_all_objectives_announced = true
 	else:
 		_all_objectives_announced = false
+	_objective_sync_busy = false
 
 func _is_objective_complete(objective_id: String) -> bool:
 	match objective_id:
@@ -327,6 +338,14 @@ func _get_item_count_by_tag(tag: String) -> int:
 		if tags.has(tag):
 			total += int(row.get("quantity", 0))
 	return total
+
+func _objective_flag_key(objective_id: String) -> String:
+	return "objective_%s_complete" % objective_id
+
+func _hydrate_objective_state_from_world_flags() -> void:
+	_objective_state.clear()
+	for objective_id in OBJECTIVE_ORDER:
+		_objective_state[objective_id] = GameServices.get_world_flag(_objective_flag_key(objective_id), false)
 
 func _cache_world_refs() -> void:
 	_day_night_cycle = get_tree().get_first_node_in_group("day_night")
@@ -497,6 +516,13 @@ func _update_debug_overlay(delta: float) -> void:
 		))
 
 	var lines: Array[String] = []
+	var resource_count: int = get_tree().get_nodes_in_group("resource_node").size()
+	var enemy_count: int = get_tree().get_nodes_in_group("enemy_bot").size()
+	var pickup_count: int = get_tree().get_nodes_in_group("pickup_item").size()
+	var nearest_enemy: float = _nearest_distance_for_group("enemy_bot")
+	var nearest_resource: float = _nearest_distance_for_group("resource_node")
+	var nearest_pickup: float = _nearest_distance_for_group("pickup_item")
+
 	lines.append("FPS: %d" % int(round(Engine.get_frames_per_second())))
 	lines.append("Position: (%.1f, %.1f, %.1f)" % [
 		_player.global_position.x,
@@ -506,8 +532,20 @@ func _update_debug_overlay(delta: float) -> void:
 	lines.append("Biome: %s" % biome_text)
 	lines.append("Objective: %d/%d" % [objective_done, OBJECTIVE_ORDER.size()])
 	lines.append("Lore unlocked: %d/3" % GameServices.lore_journal_service.get_unlocked_ids().size())
+	lines.append("Spawns: resources %d | enemies %d | pickups %d" % [resource_count, enemy_count, pickup_count])
+	lines.append("Nearest: enemy %s | resource %s | pickup %s" % [
+		_distance_label(nearest_enemy),
+		_distance_label(nearest_resource),
+		_distance_label(nearest_pickup)
+	])
+	lines.append("Resource mix: %s" % _resource_mix_summary())
 	lines.append("Dream keeper: %s" % dream_text)
 	lines.append("Credits: %d" % GameServices.inventory_service.credits)
+	lines.append("Fast-path: alloy %s | moonblade %s | terminal %s" % [
+		_format_elapsed(_first_milestone_elapsed("crafting.recipe_crafted", "recipe_id", "alloy_recipe")),
+		_format_elapsed(_first_milestone_elapsed("crafting.recipe_crafted", "recipe_id", "moonblade_recipe")),
+		_format_elapsed(_first_milestone_elapsed("ruins.terminal_primed"))
+	])
 	var viewmodel_tool: String = "none"
 	var viewmodel_node: Node = _player.get_node_or_null("Camera/ViewModelRig")
 	if viewmodel_node != null and viewmodel_node.has_method("get_active_tool"):
@@ -527,16 +565,88 @@ func _join_parts(parts: Array[String], separator: String) -> String:
 		joined += separator + parts[i]
 	return joined
 
+func _nearest_distance_for_group(group_name: String) -> float:
+	if _player == null:
+		return INF
+	var best: float = INF
+	for node in get_tree().get_nodes_in_group(group_name):
+		if not (node is Node3D):
+			continue
+		var node_3d: Node3D = node as Node3D
+		var distance: float = _player.global_position.distance_to(node_3d.global_position)
+		if distance < best:
+			best = distance
+	return best
+
+func _distance_label(value: float) -> String:
+	if is_inf(value):
+		return "n/a"
+	return "%dm" % int(round(value))
+
+func _resource_mix_summary(limit: int = 4) -> String:
+	var counts: Dictionary = {}
+	for node in get_tree().get_nodes_in_group("resource_node"):
+		if not (node is Node):
+			continue
+		var item_id: String = str(node.get("item_id"))
+		if item_id.is_empty():
+			continue
+		counts[item_id] = int(counts.get(item_id, 0)) + 1
+	if counts.is_empty():
+		return "none"
+
+	var rows: Array[Dictionary] = []
+	for item_id in counts.keys():
+		rows.append({"item_id": item_id, "count": int(counts[item_id])})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["count"]) > int(b["count"]))
+
+	var labels: Array[String] = []
+	for i in range(min(limit, rows.size())):
+		var row: Dictionary = rows[i]
+		var item_id: String = str(row.get("item_id", "unknown"))
+		var item_def: Dictionary = GameServices.get_item_def(item_id)
+		var short_name: String = str(item_def.get("name", item_id))
+		if short_name.ends_with(" Fragment"):
+			short_name = short_name.replace(" Moon Dust Fragment", "")
+		labels.append("%s:%d" % [short_name, int(row.get("count", 0))])
+	return _join_parts(labels, ", ")
+
+func _first_milestone_elapsed(event_type: String, payload_key: String = "", payload_value: String = "") -> float:
+	if GameServices.event_log_service == null or not GameServices.event_log_service.has_method("get_all"):
+		return -1.0
+	for event_payload in GameServices.event_log_service.get_all():
+		if typeof(event_payload) != TYPE_DICTIONARY:
+			continue
+		if str(event_payload.get("type", "")) != event_type:
+			continue
+		var timestamp: float = float(event_payload.get("timestamp_unix_sec", 0.0))
+		if timestamp < _session_started_unix:
+			continue
+		if payload_key != "":
+			var payload: Dictionary = event_payload.get("payload", {})
+			if str(payload.get(payload_key, "")) != payload_value:
+				continue
+		return max(0.0, timestamp - _session_started_unix)
+	return -1.0
+
+func _format_elapsed(value: float) -> String:
+	if value < 0.0:
+		return "--"
+	return "%.0fs" % value
+
 func _on_player_damaged(amount: float) -> void:
 	_damage_flash_alpha = clamp(_damage_flash_alpha + (0.12 + amount * 0.01), 0.0, 0.52)
 	_update_damage_flash(0.0)
 
 func _on_world_state_changed(_flag_id: String, _value: Variant) -> void:
+	if _objective_sync_busy:
+		return
 	if objective_panel.has_method("refresh"):
 		objective_panel.refresh()
 	_update_objectives(true)
 
 func _on_world_state_reloaded(_state: Dictionary) -> void:
+	_hydrate_objective_state_from_world_flags()
 	if objective_panel.has_method("refresh"):
 		objective_panel.refresh()
 	_update_objectives(false)

@@ -1,0 +1,11 @@
+{
+  "name": "celadora-qa-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "qa:browser:objective": "node scripts/qa/browser_objective_flow_qa.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2"
+  }
+}

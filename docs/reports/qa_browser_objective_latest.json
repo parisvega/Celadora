@@ -1,0 +1,16 @@
+{
+  "timestamp_utc": "2026-02-23T17:24:18.281Z",
+  "url": "http://127.0.0.1:8060/?qa_objective_auto=1&v=1771867447",
+  "timeout_ms": 45000,
+  "status": "inconclusive",
+  "ok": false,
+  "payload": null,
+  "screenshot": "/tmp/celadora-qa-browser-objective-latest.png",
+  "error": "page.waitForFunction: Timeout 45000ms exceeded.",
+  "diagnostics": {
+    "body_text": "Error\nThe following features required to run Godot projects on the Web are missing:\nWebGL2 - Check web browser configuration and hardware support",
+    "console_tail": [
+      "Error\nThe following features required to run Godot projects on the Web are missing:\nWebGL2 - Check web browser configuration and hardware support"
+    ]
+  }
+}

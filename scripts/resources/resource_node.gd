@@ -16,6 +16,7 @@ var _base_color: Color = Color(0.8, 0.8, 0.8)
 var _shape_id: String = "orb"
 
 func _ready() -> void:
+	add_to_group("resource_node")
 	_current_durability = durability
 	_apply_visual()
 

@@ -36,6 +36,13 @@ func get_recent(limit: int = 20) -> Array:
 		out.append(_events[i].duplicate(true))
 	return out
 
+func get_all() -> Array:
+	var out: Array = []
+	for event_payload in _events:
+		if typeof(event_payload) == TYPE_DICTIONARY:
+			out.append(event_payload.duplicate(true))
+	return out
+
 func get_last_event() -> Dictionary:
 	if _events.is_empty():
 		return {}

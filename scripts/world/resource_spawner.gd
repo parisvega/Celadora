@@ -4,9 +4,9 @@ extends Node3D
 @export var resource_scene: PackedScene
 @export var dust_nodes: int = 65
 @export var crystal_nodes: int = 24
-@export var starter_dust_nodes: int = 3
-@export var starter_crystal_nodes: int = 2
-@export var starter_ring_radius: float = 10.0
+@export var starter_dust_nodes: int = 4
+@export var starter_crystal_nodes: int = 3
+@export var starter_ring_radius: float = 8.0
 
 const DUST_IDS = [
 	"dust_blue",

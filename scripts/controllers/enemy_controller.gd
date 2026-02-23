@@ -13,6 +13,7 @@ var _health_label: Label3D = null
 var _health_label_refresh_left: float = 0.0
 
 func _ready() -> void:
+	add_to_group("enemy_bot")
 	_spawn_position = global_position
 	_load_stats()
 	_create_health_label()

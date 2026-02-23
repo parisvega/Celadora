@@ -20,6 +20,8 @@ func _ready() -> void:
 	GameServices.inventory_service.inventory_changed.connect(refresh)
 	GameServices.lore_journal_service.entry_unlocked.connect(_on_lore_unlock)
 	GameServices.crafting_service.crafted.connect(_on_crafted)
+	GameServices.world_state_changed.connect(_on_world_state_changed)
+	GameServices.world_state_reloaded.connect(_on_world_state_reloaded)
 	refresh()
 
 func refresh() -> void:
@@ -48,6 +50,16 @@ func refresh() -> void:
 	content_label.text = _join_lines(lines)
 
 func _is_complete(objective_id: String) -> bool:
+	var flag_key: String = _objective_flag_key(objective_id)
+	if GameServices.get_world_flag(flag_key, false):
+		return true
+
+	var runtime_complete: bool = _is_runtime_complete(objective_id)
+	if runtime_complete:
+		GameServices.set_world_flag(flag_key, true)
+	return runtime_complete
+
+func _is_runtime_complete(objective_id: String) -> bool:
 	match objective_id:
 		"collect_dust":
 			return _count_items_with_tag("dust") >= 1
@@ -67,6 +79,9 @@ func _is_complete(objective_id: String) -> bool:
 			return GameServices.get_world_flag("ruins_terminal_primed", false)
 		_:
 			return false
+
+func _objective_flag_key(objective_id: String) -> String:
+	return "objective_%s_complete" % objective_id
 
 func _objective_progress_text(objective_id: String) -> String:
 	match objective_id:
@@ -112,10 +127,12 @@ func _objective_hint(objective_id: String) -> String:
 			return ""
 
 func _ruins_requirements_missing_count() -> int:
+	var terminal: Node = get_tree().get_root().get_node_or_null("Main/World/GreegionRuins/Terminal")
+	if terminal != null and terminal.has_method("get_interaction_status"):
+		var status: Dictionary = terminal.get_interaction_status()
+		return int(status.get("requirements_missing", 0))
 	var missing: int = 0
 	if GameServices.inventory_service.get_quantity("moonblade_prototype") < 1:
-		missing += 1
-	if GameServices.inventory_service.get_quantity("dream_seed") < 1:
 		missing += 1
 	if GameServices.lore_journal_service.get_unlocked_ids().size() < 3:
 		missing += 1
@@ -135,6 +152,12 @@ func _on_lore_unlock(_location_id: String) -> void:
 	refresh()
 
 func _on_crafted(_recipe_id: String, _outputs: Dictionary) -> void:
+	refresh()
+
+func _on_world_state_changed(_key: String, _value: Variant) -> void:
+	refresh()
+
+func _on_world_state_reloaded(_state: Dictionary) -> void:
 	refresh()
 
 func _join_lines(lines: Array[String]) -> String:

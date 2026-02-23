@@ -6,7 +6,7 @@ signal terminal_primed
 @export var primed_message: String = "Terminal synced. Ruins protocol primed (boss encounter arrives in a future update)."
 @export var already_primed_message: String = "Terminal already primed. Deeper ruins remain sealed in v0.1."
 @export var required_item_id: String = "moonblade_prototype"
-@export var require_dream_seed: bool = true
+@export var require_dream_seed: bool = false
 @export var required_lore_entries: int = 3
 @export var world_flag_id: String = "ruins_terminal_primed"
 @export var terminal_mesh_path: NodePath = NodePath("MeshInstance3D")

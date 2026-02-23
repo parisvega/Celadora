@@ -67,11 +67,13 @@ HUD notes:
 
 Objective reliability notes:
 - Starter resource cache now spawns near the initial area (multiple dust types + energy crystals).
+- Starter fast-path was tuned further: denser starter cache and tighter spawn radius for early crafting momentum.
 - Dream Keeper now guarantees at least one night encounter after a short delay if you still need a `Dream Seed`.
 - Lore markers now use taller pulsing beacons and switch to completion tint once unlocked.
 - Ruins terminal now exposes clear missing-requirements messaging and a primed future-boss hook state.
 - Marketplace includes `Quick Sell Bot Scrap` for faster early-economy flow.
 - Event log service records key gameplay actions for future server-authoritative migration.
+- Objectives are now latched and persisted via `world_state` flags so completed milestones stay complete.
 
 ## Data-Driven Balancing
 All game data is editable JSON under `/data` and loaded at runtime.
@@ -137,6 +139,12 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
   - Outputs:
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.md`
     - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_latest.json`
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/reports/qa_browser_objective_latest.json`
+- Run browser objective-flow QA directly:
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/qa/run_browser_objective_qa.sh 8060`
+  - Notes:
+    - Uses Playwright via local Node tooling (`package.json`).
+    - Marks result `inconclusive` when headless browser lacks WebGL2 support.
 - Run v0.1 goal audit report:
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/goal_check.sh`
   - Output:
@@ -146,6 +154,8 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 - See:
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/agent_playbook.md`
 - It defines UX/DX/AX priorities, safe iteration checklist, and command sequence for future agent contributions.
+- Balancing telemetry:
+  - Debug overlay (`F3`) now includes spawn telemetry (resource/enemy/pickup counts + nearest distances), resource mix summary, and fast-path milestone timers.
 
 ## Next Milestones
 1. **Dedicated server foundation**

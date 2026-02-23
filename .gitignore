@@ -14,3 +14,10 @@ build/web/
 # QA run artifacts (keep qa_latest.* tracked)
 docs/reports/headless_qa_*.md
 docs/reports/headless_qa_*.json
+
+# Node QA tooling
+node_modules/
+
+# Browser QA artifacts
+docs/reports/qa_browser_objective_latest.png
+docs/reports/qa_browser_objective_latest.png.import

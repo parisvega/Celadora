@@ -5,6 +5,7 @@
 - `GameServices` autoload wires all gameplay services.
 - World simulation scripts own generation, resources, day/night, moons, and ambient events.
 - HUD includes objective progression, objective checklist panel, compass bearings, lore-marker navigation status, target status, debug overlay, and combat hit feedback so loops stay legible without opening panels.
+- Objective progression is latched and persisted via `world_state` flags (`objective_*_complete`) so consumable crafting ingredients do not regress completed milestones.
 
 ## Services
 - `DataService`: loads JSON definitions from `/data` and validates required Celadora contracts at boot.
@@ -25,6 +26,7 @@
 - `ResourceSpawner`: data-aware resource node placement with guaranteed starter pack near spawn.
 - `DreamKeeperSpawner`: night-gated encounter scheduler with guaranteed first-night seed access path.
 - `RuinsTerminal`: locked-door boss hook with requirement-aware priming state and save/load persistence.
+- Browser QA seam: `Main` supports `?qa_objective_auto=1` to run deterministic objective-flow automation and publish a web QA payload for tooling.
 
 ## Data-Driven Contracts
 All balance data is loaded at runtime:
