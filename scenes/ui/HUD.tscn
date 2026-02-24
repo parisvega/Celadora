@@ -19,24 +19,116 @@ offset_bottom = 0.0
 mouse_filter = 2
 color = Color(0.92, 0.05, 0.05, 0)
 
-[node name="StatsLabel" type="Label" parent="."]
+[node name="TopAtmosphere" type="ColorRect" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 146.0
+color = Color(0.02, 0.07, 0.13, 0.4)
+
+[node name="TopEdge" type="ColorRect" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 145.0
+offset_bottom = 147.0
+color = Color(0.55, 0.92, 1, 0.35)
+
+[node name="StatsCard" type="Panel" parent="."]
 offset_left = 16.0
 offset_top = 14.0
-offset_right = 540.0
-offset_bottom = 38.0
+offset_right = 412.0
+offset_bottom = 138.0
+
+[node name="StatsLabel" type="Label" parent="."]
+offset_left = 28.0
+offset_top = 22.0
+offset_right = 402.0
+offset_bottom = 44.0
 text = ""
 
-[node name="CompassLabel" type="Label" parent="."]
-anchors_preset = 10
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -360.0
+[node name="HPLabel" type="Label" parent="."]
+offset_left = 28.0
+offset_top = 50.0
+offset_right = 104.0
+offset_bottom = 72.0
+text = "HP"
+
+[node name="HPBar" type="ProgressBar" parent="."]
+offset_left = 104.0
+offset_top = 52.0
+offset_right = 400.0
+offset_bottom = 70.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="StaminaLabel" type="Label" parent="."]
+offset_left = 28.0
+offset_top = 77.0
+offset_right = 104.0
+offset_bottom = 99.0
+text = "STA"
+
+[node name="StaminaBar" type="ProgressBar" parent="."]
+offset_left = 104.0
+offset_top = 79.0
+offset_right = 400.0
+offset_bottom = 97.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="ShieldLabel" type="Label" parent="."]
+offset_left = 28.0
+offset_top = 104.0
+offset_right = 104.0
+offset_bottom = 126.0
+text = "SHD"
+
+[node name="ShieldBar" type="ProgressBar" parent="."]
+offset_left = 104.0
+offset_top = 106.0
+offset_right = 400.0
+offset_bottom = 124.0
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="CompassCard" type="Panel" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -560.0
 offset_top = 14.0
-offset_right = 360.0
-offset_bottom = 38.0
-grow_horizontal = 2
+offset_right = -16.0
+offset_bottom = 52.0
+grow_horizontal = 0
+
+[node name="CompassLabel" type="Label" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -548.0
+offset_top = 20.0
+offset_right = -30.0
+offset_bottom = 44.0
+grow_horizontal = 0
 horizontal_alignment = 1
 vertical_alignment = 1
+clip_text = true
+text = ""
+
+[node name="MessageCard" type="Panel" parent="."]
+offset_left = 16.0
+offset_top = 148.0
+offset_right = 748.0
+offset_bottom = 194.0
+
+[node name="MessageLabel" type="Label" parent="."]
+offset_left = 30.0
+offset_top = 158.0
+offset_right = 736.0
+offset_bottom = 184.0
+autowrap_mode = 3
 text = ""
 
 [node name="DebugPanel" type="Panel" parent="."]
@@ -44,20 +136,22 @@ visible = false
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -350.0
-offset_top = 44.0
+offset_left = -366.0
+offset_top = 14.0
 offset_right = -16.0
-offset_bottom = 264.0
+offset_bottom = 312.0
 grow_horizontal = 0
 
 [node name="DebugVBox" type="VBoxContainer" parent="DebugPanel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 8.0
-offset_right = -10.0
-offset_bottom = -8.0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="DebugTitle" type="Label" parent="DebugPanel/DebugVBox"]
 text = "Debug Overlay (F3)"
@@ -68,46 +162,84 @@ fit_content = true
 scroll_active = false
 text = ""
 
-[node name="HelpLabel" type="Label" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -56.0
-offset_right = -16.0
-offset_bottom = -34.0
-grow_horizontal = 2
-grow_vertical = 0
-horizontal_alignment = 1
-vertical_alignment = 1
-text = ""
-
-[node name="MessageLabel" type="Label" parent="."]
-offset_left = 16.0
-offset_top = 66.0
-offset_right = 920.0
-offset_bottom = 90.0
-text = ""
-
 [node name="BottomHUDBackground" type="ColorRect" parent="."]
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -154.0
+offset_top = -220.0
 offset_bottom = 0.0
-color = Color(0, 0, 0, 0.35)
+color = Color(0.01, 0.05, 0.1, 0.62)
+
+[node name="RouteStripCard" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -214.0
+offset_right = -14.0
+offset_bottom = -184.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ObjectiveStripCard" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -180.0
+offset_right = -14.0
+offset_bottom = -152.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="WorldStripCard" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -148.0
+offset_right = -14.0
+offset_bottom = -120.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="InteractionStripCard" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -116.0
+offset_right = -14.0
+offset_bottom = -88.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ControlsCard" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -82.0
+offset_right = -14.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
 
 [node name="RouteLabel" type="Label" parent="."]
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -150.0
-offset_right = -16.0
-offset_bottom = -130.0
+offset_left = 28.0
+offset_top = -210.0
+offset_right = -28.0
+offset_bottom = -188.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_alignment = 1
@@ -119,10 +251,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -128.0
-offset_right = -16.0
-offset_bottom = -106.0
+offset_left = 28.0
+offset_top = -176.0
+offset_right = -28.0
+offset_bottom = -154.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_alignment = 1
@@ -134,29 +266,15 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -104.0
-offset_right = -16.0
-offset_bottom = -82.0
+offset_left = 28.0
+offset_top = -144.0
+offset_right = -28.0
+offset_bottom = -122.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_alignment = 1
 vertical_alignment = 1
-text = ""
-
-[node name="MovementLabel" type="Label" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -30.0
-offset_right = -16.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
-horizontal_alignment = 1
-vertical_alignment = 1
+autowrap_mode = 3
 text = ""
 
 [node name="InteractionLabel" type="Label" parent="."]
@@ -164,15 +282,74 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -80.0
-offset_right = -16.0
-offset_bottom = -58.0
+offset_left = 28.0
+offset_top = -112.0
+offset_right = -28.0
+offset_bottom = -90.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = ""
+
+[node name="HelpLabel" type="Label" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = -76.0
+offset_right = -22.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = ""
+
+[node name="MovementLabel" type="Label" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = -44.0
+offset_right = -22.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = ""
+
+[node name="TargetStatusCard" type="Panel" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -258.0
+offset_top = 19.0
+offset_right = 258.0
+offset_bottom = 53.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CrosshairHalo" type="ColorRect" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.48, 0.89, 1, 0.12)
 
 [node name="Crosshair" type="Label" parent="."]
 anchors_preset = 8
@@ -197,7 +374,7 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -240.0
-offset_top = 22.0
+offset_top = 24.0
 offset_right = 240.0
 offset_bottom = 48.0
 grow_horizontal = 2
@@ -223,10 +400,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -280.0
-offset_top = -136.0
-offset_right = 280.0
-offset_bottom = 136.0
+offset_left = -324.0
+offset_top = -164.0
+offset_right = 324.0
+offset_bottom = 164.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -234,10 +411,10 @@ grow_vertical = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 14.0
-offset_top = 12.0
-offset_right = -14.0
-offset_bottom = -12.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = -16.0
+offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 

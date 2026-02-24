@@ -1,10 +1,22 @@
 extends CanvasLayer
 
 @onready var damage_flash: ColorRect = $DamageFlash
+@onready var top_atmosphere: ColorRect = $TopAtmosphere
+@onready var top_edge: ColorRect = $TopEdge
+@onready var stats_card: Panel = $StatsCard
 @onready var stats_label: Label = $StatsLabel
+@onready var hp_label: Label = $HPLabel
+@onready var stamina_label: Label = $StaminaLabel
+@onready var shield_label: Label = $ShieldLabel
+@onready var hp_bar: ProgressBar = $HPBar
+@onready var stamina_bar: ProgressBar = $StaminaBar
+@onready var shield_bar: ProgressBar = $ShieldBar
+@onready var compass_card: Panel = $CompassCard
 @onready var compass_label: Label = $CompassLabel
+@onready var message_card: Panel = $MessageCard
 @onready var route_label: Label = $RouteLabel
 @onready var target_status_label: Label = $TargetStatusLabel
+@onready var target_status_card: Panel = $TargetStatusCard
 @onready var objective_label: Label = $ObjectiveLabel
 @onready var world_status_label: Label = $WorldStatusLabel
 @onready var help_label: Label = $HelpLabel
@@ -12,6 +24,13 @@ extends CanvasLayer
 @onready var movement_label: Label = $MovementLabel
 @onready var interaction_label: Label = $InteractionLabel
 @onready var crosshair: Label = $Crosshair
+@onready var crosshair_halo: ColorRect = $CrosshairHalo
+@onready var bottom_hud_background: ColorRect = $BottomHUDBackground
+@onready var route_strip_card: Panel = $RouteStripCard
+@onready var objective_strip_card: Panel = $ObjectiveStripCard
+@onready var world_strip_card: Panel = $WorldStripCard
+@onready var interaction_strip_card: Panel = $InteractionStripCard
+@onready var controls_card: Panel = $ControlsCard
 @onready var inventory_panel: Panel = $InventoryPanel
 @onready var objective_panel: Panel = $ObjectivePanel
 @onready var crafting_panel: Panel = $CraftingPanel
@@ -37,6 +56,20 @@ var _debug_refresh_left: float = 0.0
 var _objective_sync_busy: bool = false
 var _session_started_unix: float = 0.0
 var _completion_panel_time_left: float = 0.0
+var _ui_anim_time: float = 0.0
+var _last_compact_mode: bool = false
+
+const HUD_COLORS := {
+	"cyan": Color(0.44, 0.93, 1.0, 1.0),
+	"cyan_dim": Color(0.21, 0.44, 0.53, 1.0),
+	"lime": Color(0.54, 0.94, 0.66, 1.0),
+	"amber": Color(1.0, 0.76, 0.34, 1.0),
+	"red": Color(1.0, 0.37, 0.43, 1.0),
+	"ink": Color(0.03, 0.08, 0.13, 0.88),
+	"ink_soft": Color(0.06, 0.12, 0.18, 0.68),
+	"text": Color(0.91, 0.97, 1.0, 1.0),
+	"text_muted": Color(0.71, 0.85, 0.92, 1.0)
+}
 
 const OBJECTIVE_ORDER = [
 	"collect_dust",
@@ -75,12 +108,15 @@ const LOCATION_SHORT_NAMES = {
 func _ready() -> void:
 	_session_started_unix = Time.get_unix_time_from_system()
 	add_to_group("hud")
+	_apply_hud_design_system()
+	_apply_responsive_layout(true)
 	crosshair.text = "+"
 	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Swing (Mine/Attack)  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
 	movement_label.text = "Movement: W/A/S/D Move  |  Shift Run  |  Space Jump  |  Mouse Look  |  Esc Cursor"
 	compass_label.text = "Facing N"
 	route_label.text = "Route: Initializing..."
 	target_status_label.text = ""
+	interaction_label.text = "Interact: Scan nearby node, terminal, or bot."
 	objective_label.text = "Objective: Initializing..."
 	world_status_label.text = "World: ..."
 	debug_panel.visible = false
@@ -120,6 +156,7 @@ func set_player(player: Node) -> void:
 	_update_stats_text()
 
 func _process(delta: float) -> void:
+	_ui_anim_time += delta
 	if _message_time_left > 0.0:
 		_message_time_left -= delta
 		if _message_time_left <= 0.0:
@@ -146,6 +183,8 @@ func _process(delta: float) -> void:
 	_update_world_status(delta)
 	_update_damage_flash(delta)
 	_update_debug_overlay(delta)
+	_animate_hud(delta)
+	_apply_responsive_layout(false)
 
 func toggle_panel(name: String) -> void:
 	match name:
@@ -174,6 +213,103 @@ func push_message(text: String) -> void:
 	message_label.text = text
 	_message_time_left = 4.0
 
+func _apply_hud_design_system() -> void:
+	top_atmosphere.color = Color(0.03, 0.09, 0.15, 0.42)
+	top_edge.color = Color(0.5, 0.94, 1.0, 0.35)
+	bottom_hud_background.color = Color(0.01, 0.05, 0.1, 0.64)
+	crosshair_halo.color = Color(0.52, 0.92, 1.0, 0.13)
+	damage_flash.color = Color(1.0, 0.2, 0.24, 0.0)
+
+	_style_panel(stats_card, HUD_COLORS["ink"], HUD_COLORS["cyan_dim"], 14.0)
+	_style_panel(compass_card, Color(0.04, 0.1, 0.16, 0.84), HUD_COLORS["cyan_dim"], 14.0)
+	_style_panel(message_card, Color(0.05, 0.1, 0.16, 0.86), Color(0.34, 0.68, 0.82, 0.45), 10.0)
+	_style_panel(target_status_card, Color(0.04, 0.1, 0.16, 0.86), HUD_COLORS["cyan_dim"], 12.0)
+	_style_panel(route_strip_card, Color(0.06, 0.15, 0.24, 0.84), Color(0.27, 0.66, 0.82, 0.45), 10.0)
+	_style_panel(objective_strip_card, Color(0.05, 0.12, 0.2, 0.84), Color(0.24, 0.58, 0.76, 0.4), 10.0)
+	_style_panel(world_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
+	_style_panel(interaction_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
+	_style_panel(controls_card, Color(0.04, 0.09, 0.16, 0.85), Color(0.2, 0.5, 0.7, 0.42), 10.0)
+	_style_panel(debug_panel, Color(0.03, 0.08, 0.13, 0.94), HUD_COLORS["cyan_dim"], 12.0)
+	_style_panel(completion_panel, Color(0.03, 0.08, 0.13, 0.95), Color(0.35, 0.78, 0.95, 0.6), 14.0)
+	_style_progress_bar(hp_bar, HUD_COLORS["red"])
+	_style_progress_bar(stamina_bar, HUD_COLORS["amber"])
+	_style_progress_bar(shield_bar, HUD_COLORS["cyan"])
+
+	_style_label(stats_label, HUD_COLORS["text"], 16, true)
+	_style_label(compass_label, HUD_COLORS["text"], 16, true)
+	_style_label(route_label, HUD_COLORS["cyan"], 15, true)
+	_style_label(objective_label, HUD_COLORS["text"], 15, true)
+	_style_label(world_status_label, HUD_COLORS["text_muted"], 14, false)
+	_style_label(interaction_label, HUD_COLORS["lime"], 14, false)
+	_style_label(help_label, HUD_COLORS["text_muted"], 14, false)
+	_style_label(movement_label, HUD_COLORS["text_muted"], 14, false)
+	_style_label(message_label, HUD_COLORS["text"], 15, false)
+	_style_label(target_status_label, HUD_COLORS["text"], 14, true)
+	_style_label(hp_label, HUD_COLORS["red"], 13, true)
+	_style_label(stamina_label, HUD_COLORS["amber"], 13, true)
+	_style_label(shield_label, HUD_COLORS["cyan"], 13, true)
+	_style_label(crosshair, HUD_COLORS["cyan"], 28, true)
+	_style_label(completion_meta, HUD_COLORS["text_muted"], 14, false)
+	_style_label(get_node("CompletionPanel/VBox/Title") as Label, HUD_COLORS["cyan"], 22, true)
+	debug_body.add_theme_color_override("default_color", HUD_COLORS["text"])
+	completion_summary.add_theme_color_override("default_color", HUD_COLORS["text"])
+	completion_summary.add_theme_font_size_override("normal_font_size", 17)
+
+func _style_panel(panel: Panel, bg_color: Color, border_color: Color, corner_radius: float = 10.0) -> void:
+	if panel == null:
+		return
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = int(corner_radius)
+	style.corner_radius_top_right = int(corner_radius)
+	style.corner_radius_bottom_left = int(corner_radius)
+	style.corner_radius_bottom_right = int(corner_radius)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.35)
+	style.shadow_size = 4
+	panel.add_theme_stylebox_override("panel", style)
+
+func _style_progress_bar(bar: ProgressBar, fill_color: Color) -> void:
+	if bar == null:
+		return
+	var bg: StyleBoxFlat = StyleBoxFlat.new()
+	bg.bg_color = Color(0.02, 0.06, 0.09, 0.92)
+	bg.corner_radius_top_left = 5
+	bg.corner_radius_top_right = 5
+	bg.corner_radius_bottom_left = 5
+	bg.corner_radius_bottom_right = 5
+	bg.border_color = Color(0.2, 0.35, 0.45, 0.55)
+	bg.border_width_left = 1
+	bg.border_width_top = 1
+	bg.border_width_right = 1
+	bg.border_width_bottom = 1
+
+	var fill: StyleBoxFlat = StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.corner_radius_top_left = 5
+	fill.corner_radius_top_right = 5
+	fill.corner_radius_bottom_left = 5
+	fill.corner_radius_bottom_right = 5
+	fill.shadow_color = fill_color * Color(1, 1, 1, 0.35)
+	fill.shadow_size = 2
+
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+
+func _style_label(label: Label, font_color: Color, size: int, uppercase: bool) -> void:
+	if label == null:
+		return
+	label.add_theme_color_override("font_color", font_color)
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.95))
+	label.add_theme_constant_override("outline_size", 2)
+	label.add_theme_font_size_override("font_size", size)
+	if uppercase:
+		label.uppercase = true
+
 func _set_all_panels_hidden() -> void:
 	inventory_panel.visible = false
 	objective_panel.visible = false
@@ -196,11 +332,17 @@ func _refresh_all_panels() -> void:
 func _update_stats_text() -> void:
 	if _player == null:
 		stats_label.text = ""
+		hp_bar.value = 0.0
+		stamina_bar.value = 0.0
+		shield_bar.value = 0.0
 		return
 	var health = float(_player.get("health"))
 	var stamina = float(_player.get("stamina"))
 	var shield = float(_player.get("shield"))
-	stats_label.text = "HP %.0f | STA %.0f | SHD %.0f | CR %d" % [
+	hp_bar.value = clamp(health, 0.0, hp_bar.max_value)
+	stamina_bar.value = clamp(stamina, 0.0, stamina_bar.max_value)
+	shield_bar.value = clamp(shield, 0.0, shield_bar.max_value)
+	stats_label.text = "Vitals  |  HP %.0f  STA %.0f  SHD %.0f  |  Credits %d" % [
 		health,
 		stamina,
 		shield,
@@ -245,26 +387,35 @@ func _on_item_crafted(recipe_id: String, _outputs: Dictionary) -> void:
 	_update_objectives(true)
 
 func _on_interaction_hint_changed(text: String) -> void:
-	interaction_label.text = text
+	if text.is_empty():
+		interaction_label.text = "Interact: Scan nearby node, terminal, or bot."
+		_style_panel(interaction_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
+		return
+	interaction_label.text = "Interact: %s" % text
+	_style_panel(interaction_strip_card, Color(0.07, 0.16, 0.22, 0.9), Color(0.44, 0.93, 1.0, 0.52), 10.0)
 
 func _on_interaction_target_changed(status: Dictionary) -> void:
 	if status.is_empty():
 		target_status_label.text = ""
+		_style_panel(target_status_card, Color(0.04, 0.1, 0.16, 0.86), HUD_COLORS["cyan_dim"], 12.0)
 		return
 	var kind: String = str(status.get("type", ""))
 	match kind:
 		"resource":
+			_style_panel(target_status_card, Color(0.06, 0.14, 0.2, 0.9), Color(0.44, 0.93, 1.0, 0.64), 12.0)
 			target_status_label.text = "%s Integrity %d%%" % [
 				str(status.get("name", "Resource")),
 				int(round(float(status.get("progress_pct", 0.0))))
 			]
 		"enemy":
+			_style_panel(target_status_card, Color(0.22, 0.08, 0.11, 0.9), Color(1.0, 0.42, 0.46, 0.7), 12.0)
 			target_status_label.text = "%s HP %.0f/%.0f" % [
 				str(status.get("name", "Enemy")),
 				float(status.get("hp", 0.0)),
 				float(status.get("hp_max", 0.0))
 			]
 		"terminal":
+			_style_panel(target_status_card, Color(0.12, 0.11, 0.05, 0.9), Color(1.0, 0.78, 0.32, 0.64), 12.0)
 			var state_text: String = str(status.get("state", "locked")).capitalize()
 			var missing_count: int = int(status.get("requirements_missing", 0))
 			if missing_count > 0:
@@ -279,6 +430,7 @@ func _on_interaction_target_changed(status: Dictionary) -> void:
 					state_text
 				]
 		_:
+			_style_panel(target_status_card, Color(0.04, 0.1, 0.16, 0.86), HUD_COLORS["cyan_dim"], 12.0)
 			var action: String = str(status.get("action", ""))
 			var name_text: String = str(status.get("name", "Target"))
 			target_status_label.text = ("%s %s" % [action, name_text]).strip_edges()
@@ -314,11 +466,13 @@ func _update_objectives(announce: bool) -> void:
 
 	objective_label.text = "Objective %d/%d: %s" % [completed_count, OBJECTIVE_ORDER.size(), next_objective]
 	if completed_count >= OBJECTIVE_ORDER.size():
+		_style_panel(objective_strip_card, Color(0.08, 0.2, 0.15, 0.9), Color(0.55, 0.94, 0.66, 0.62), 10.0)
 		if announce and not _all_objectives_announced:
 			push_message("All objectives complete: Celadora v0.1 secured.")
 			_show_completion_panel()
 		_all_objectives_announced = true
 	else:
+		_style_panel(objective_strip_card, Color(0.05, 0.12, 0.2, 0.84), Color(0.24, 0.58, 0.76, 0.4), 10.0)
 		_all_objectives_announced = false
 	_objective_sync_busy = false
 
@@ -433,6 +587,14 @@ func _update_world_status(delta: float) -> void:
 		dream_text
 	]
 	route_label.text = _build_route_text(nav, phase_text, dream_text)
+	if phase_text == "Night":
+		_style_panel(world_strip_card, Color(0.08, 0.08, 0.18, 0.86), Color(0.62, 0.74, 1.0, 0.42), 10.0)
+	else:
+		_style_panel(world_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
+	if bool(nav.get("unlocked", false)):
+		_style_panel(route_strip_card, Color(0.08, 0.18, 0.14, 0.86), Color(0.55, 0.94, 0.66, 0.52), 10.0)
+	else:
+		_style_panel(route_strip_card, Color(0.06, 0.15, 0.24, 0.84), Color(0.27, 0.66, 0.82, 0.45), 10.0)
 
 func _show_data_validation_state() -> void:
 	var report: Dictionary = GameServices.get_data_validation_report()
@@ -451,42 +613,19 @@ func _update_compass_text(current_nav: Dictionary) -> void:
 
 	var forward: Vector3 = -_player.global_transform.basis.z
 	var facing: String = _cardinal_from_delta(Vector2(forward.x, forward.z))
-
-	var parts: Array[String] = []
-	parts.append("Facing %s" % facing)
-	for location_id in LORE_ROUTE:
-		var location: Dictionary = GameServices.data_service.get_location(location_id)
-		if location.is_empty():
-			continue
-		var position_values: Array = location.get("position", [])
-		if position_values.size() != 3:
-			continue
-		var target: Vector3 = Vector3(
-			float(position_values[0]),
-			float(position_values[1]),
-			float(position_values[2])
-		)
-		var planar_delta: Vector2 = Vector2(
-			target.x - _player.global_position.x,
-			target.z - _player.global_position.z
-		)
-		var direction: String = _cardinal_from_delta(planar_delta)
-		var distance_m: int = int(round(planar_delta.length()))
-		var is_unlocked: bool = GameServices.lore_journal_service.is_unlocked(location_id)
-		var marker_state: String = "DONE" if is_unlocked else "NEW"
-		parts.append("%s %s %dm %s" % [
-			str(LOCATION_SHORT_NAMES.get(location_id, location_id)),
-			direction,
-			distance_m,
-			marker_state
-		])
-
-	if current_nav.has("id"):
-		var nav_id: String = str(current_nav.get("id", ""))
-		if nav_id != "none":
-			parts.append("Nearest %s" % str(current_nav.get("name", nav_id)))
-
-	compass_label.text = _join_parts(parts, "  |  ")
+	var nav_name: String = str(current_nav.get("name", "No marker"))
+	var nav_direction: String = str(current_nav.get("direction", "N"))
+	var nav_distance: int = int(current_nav.get("distance_m", 0))
+	var nav_state: String = "DONE" if bool(current_nav.get("unlocked", false)) else "NEW"
+	var lore_progress: String = "%d/3" % GameServices.lore_journal_service.get_unlocked_ids().size()
+	compass_label.text = "Facing %s  |  Next %s %s %dm (%s)  |  Lore %s" % [
+		facing,
+		nav_name,
+		nav_direction,
+		nav_distance,
+		nav_state,
+		lore_progress
+	]
 
 func _build_route_text(nav: Dictionary, phase_text: String, dream_text: String) -> String:
 	var objective_id: String = _next_incomplete_objective_id()
@@ -621,6 +760,56 @@ func _update_debug_overlay(delta: float) -> void:
 		lines.append("Events: %d" % GameServices.event_log_service.get_count())
 		lines.append("Last event: %s" % str(last_event.get("type", "none")))
 	debug_body.text = _join_parts(lines, "\n")
+
+func _animate_hud(_delta: float) -> void:
+	var route_pulse: float = 0.78 + 0.22 * (sin(_ui_anim_time * 2.6) * 0.5 + 0.5)
+	route_label.modulate = Color(1.0, 1.0, 1.0, route_pulse)
+	route_strip_card.modulate = Color(1.0, 1.0, 1.0, 0.88 + route_pulse * 0.12)
+
+	var halo_strength: float = 0.09 + 0.08 * (sin(_ui_anim_time * 3.8) * 0.5 + 0.5)
+	crosshair_halo.color = Color(0.52, 0.92, 1.0, halo_strength)
+	var halo_size: float = 20.0 + (sin(_ui_anim_time * 3.8) * 2.4)
+	crosshair_halo.offset_left = -halo_size
+	crosshair_halo.offset_top = -halo_size
+	crosshair_halo.offset_right = halo_size
+	crosshair_halo.offset_bottom = halo_size
+
+	if _message_time_left > 0.0:
+		message_card.visible = true
+		var fade: float = clamp(_message_time_left / 4.0, 0.15, 1.0)
+		message_card.modulate = Color(1.0, 1.0, 1.0, 0.55 + fade * 0.45)
+	else:
+		message_card.modulate = Color(1.0, 1.0, 1.0, 0.34)
+
+	if completion_panel.visible:
+		var completion_pulse: float = 0.9 + 0.1 * (sin(_ui_anim_time * 2.2) * 0.5 + 0.5)
+		completion_panel.modulate = Color(1.0, 1.0, 1.0, completion_pulse)
+
+func _apply_responsive_layout(force: bool) -> void:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var compact_mode: bool = viewport_size.x < 1140.0
+	if not force and compact_mode == _last_compact_mode:
+		return
+	_last_compact_mode = compact_mode
+
+	var main_font_size: int = 13 if compact_mode else 15
+	var info_font_size: int = 12 if compact_mode else 14
+	var small_font_size: int = 11 if compact_mode else 13
+
+	for label in [route_label, objective_label]:
+		label.add_theme_font_size_override("font_size", main_font_size)
+	for label in [world_status_label, interaction_label, help_label, movement_label, target_status_label]:
+		label.add_theme_font_size_override("font_size", info_font_size)
+	for label in [hp_label, stamina_label, shield_label]:
+		label.add_theme_font_size_override("font_size", small_font_size)
+	stats_label.add_theme_font_size_override("font_size", 14 if compact_mode else 16)
+	compass_label.add_theme_font_size_override("font_size", 14 if compact_mode else 16)
+	message_label.add_theme_font_size_override("font_size", info_font_size)
+
+	if compact_mode:
+		bottom_hud_background.offset_top = -244.0
+	else:
+		bottom_hud_background.offset_top = -220.0
 
 func _join_parts(parts: Array[String], separator: String) -> String:
 	if parts.is_empty():
