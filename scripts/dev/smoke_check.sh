@@ -94,12 +94,17 @@ required=(
   scenes/player/ViewTool_Miner.tscn
   scenes/ui/HUD.tscn
   scenes/ui/ObjectivePanel.tscn
+  assets/shaders/terrain_biome.gdshader
+  assets/shaders/celadora_water.gdshader
+  assets/shaders/celadora_skydome.gdshader
   scripts/resources/dust_shape_library.gd
   scripts/services/game_services.gd
   scripts/services/event_log_service.gd
   scripts/controllers/player_controller.gd
   scripts/controllers/viewmodel_controller.gd
   scripts/controllers/enemy_controller.gd
+  scripts/world/world_visuals.gd
+  docs/realism_stack.md
 )
 for f in "${required[@]}"; do
   test -f "$f" || { echo "Missing required file: $f"; exit 1; }

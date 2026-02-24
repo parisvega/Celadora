@@ -1,10 +1,11 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/world_spawner.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world/resource_spawner.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/world/day_night_cycle.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/world/moon_system.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/world/dream_keeper_spawner.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/world/world_visuals.gd" id="12"]
 [ext_resource type="PackedScene" path="res://scenes/world/ResourceNode.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/world/DreamKeeper.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/world/PickupItem.tscn" id="8"]
@@ -49,6 +50,12 @@ environment = SubResource("1")
 
 [node name="MoonSystem" type="Node3D" parent="."]
 script = ExtResource("4")
+
+[node name="WorldVisuals" type="Node3D" parent="."]
+script = ExtResource("12")
+world_spawner_path = NodePath("../WorldSpawner")
+day_night_cycle_path = NodePath("../DayNightCycle")
+player_path = NodePath("../../Player")
 
 [node name="DreamKeeperSpawner" type="Node3D" parent="."]
 script = ExtResource("5")

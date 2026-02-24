@@ -45,8 +45,19 @@ func _apply_lighting() -> void:
 	sun.rotation_degrees = Vector3(rad_to_deg(sun_angle) - 90.0, -45.0, 0.0)
 	var daylight = clamp((sin(sun_angle) + 1.0) * 0.5, 0.05, 1.0)
 	sun.light_energy = 0.15 + daylight * 1.3
+	sun.light_color = Color(1.0, 0.54, 0.36).lerp(Color(1.0, 0.97, 0.9), daylight)
 
 	if world_environment.environment != null:
 		var env = world_environment.environment
-		env.ambient_light_color = Color(0.07, 0.1, 0.18).lerp(Color(0.55, 0.6, 0.68), daylight)
+		env.background_color = Color(0.01, 0.03, 0.08).lerp(Color(0.47, 0.63, 0.82), daylight)
+		env.ambient_light_color = Color(0.07, 0.1, 0.18).lerp(Color(0.58, 0.64, 0.72), daylight)
 		env.ambient_light_energy = 0.35 + daylight * 0.65
+		_set_if_property(env, "fog_density", lerp(0.0065, 0.0031, daylight))
+		_set_if_property(env, "fog_light_color", Color(0.04, 0.09, 0.18).lerp(Color(0.66, 0.74, 0.82), daylight))
+		_set_if_property(env, "fog_aerial_perspective", lerp(0.62, 0.38, daylight))
+
+func _set_if_property(target: Object, property_name: String, value: Variant) -> void:
+	for property_meta in target.get_property_list():
+		if str(property_meta.get("name", "")) == property_name:
+			target.set(property_name, value)
+			return

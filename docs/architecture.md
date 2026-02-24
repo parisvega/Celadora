@@ -23,6 +23,7 @@
 - `ViewModelController`: first-person arms/hands/tool rendering, sway/bob/recoil/fatigue feedback, tool state visuals.
 - `EnemyController`: patrol/aggro/attack lifecycle for Greegion Miner Bots.
 - `WorldSpawner`: deterministic chunked block terrain + biome coloration.
+- `WorldVisuals`: renderer-safe realism layer (procedural sky dome, animated water plane, day/night-driven shader params).
 - `ResourceSpawner`: data-aware resource node placement with guaranteed starter pack near spawn.
 - `DreamKeeperSpawner`: night-gated encounter scheduler with guaranteed first-night seed access path.
 - `RuinsTerminal`: locked-door boss hook with requirement-aware priming state and save/load persistence.

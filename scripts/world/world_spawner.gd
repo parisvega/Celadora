@@ -5,19 +5,27 @@ extends Node3D
 @export var height_scale: float = 4.0
 @export var seed: int = 1337
 
+const TERRAIN_SHADER_PATH := "res://assets/shaders/terrain_biome.gdshader"
+
 var _height_noise: FastNoiseLite
 var _biome_noise: FastNoiseLite
 var _height_map: Dictionary = {}
 var _biome_map: Dictionary = {}
+var _terrain_shader: Shader = null
+var _biome_material_cache: Dictionary = {}
+var _fallback_root: Node3D = null
 
 func _ready() -> void:
 	add_to_group("world_spawner")
+	_terrain_shader = load(TERRAIN_SHADER_PATH) as Shader
+	randomize()
 	_generate_world()
 
 func _generate_world() -> void:
 	_spawn_fallback_landmark()
 	_height_map.clear()
 	_biome_map.clear()
+	_biome_material_cache.clear()
 
 	_height_noise = FastNoiseLite.new()
 	_height_noise.seed = seed
@@ -39,6 +47,7 @@ func _generate_world() -> void:
 			_spawn_tile(world_x, world_z, height, biome)
 			_height_map[_key(x, z)] = height
 			_biome_map[_key(x, z)] = biome
+	_cleanup_fallback_landmark()
 
 func _sample_height(x: int, z: int) -> float:
 	var n = _height_noise.get_noise_2d(float(x), float(z))
@@ -60,7 +69,7 @@ func _spawn_tile(world_x: float, world_z: float, height: float, biome: String) -
 
 	var mesh_instance = MeshInstance3D.new()
 	mesh_instance.mesh = _create_tile_mesh()
-	mesh_instance.material_override = _create_biome_material(biome)
+	mesh_instance.material_override = _get_biome_material(biome)
 	body.add_child(mesh_instance)
 
 	var collision = CollisionShape3D.new()
@@ -86,8 +95,9 @@ func _spawn_foliage(world_x: float, height: float, world_z: float) -> void:
 	stem.mesh = cylinder
 
 	var material = StandardMaterial3D.new()
-	material.albedo_color = Color(0.1, 0.45, 0.2)
-	material.roughness = 0.9
+	material.albedo_color = Color(0.1, 0.46, 0.22)
+	material.roughness = 0.88
+	material.metallic = 0.03
 	stem.material_override = material
 	stem.position = Vector3(world_x + randf_range(-0.4, 0.4), height + (cylinder.height * 0.5), world_z + randf_range(-0.4, 0.4))
 	add_child(stem)
@@ -121,6 +131,18 @@ func _create_tile_mesh() -> Mesh:
 	return box
 
 func _create_biome_material(biome: String) -> Material:
+	if _terrain_shader != null:
+		var shader_material := ShaderMaterial.new()
+		shader_material.shader = _terrain_shader
+		var palette: Dictionary = _biome_palette(biome)
+		shader_material.set_shader_parameter("base_color", palette.get("base", Color(0.2, 0.45, 0.24)))
+		shader_material.set_shader_parameter("accent_color", palette.get("accent", Color(0.14, 0.34, 0.19)))
+		shader_material.set_shader_parameter("roughness_value", float(palette.get("roughness", 0.92)))
+		shader_material.set_shader_parameter("metallic_value", float(palette.get("metallic", 0.02)))
+		shader_material.set_shader_parameter("noise_scale", float(palette.get("noise_scale", 0.24)))
+		shader_material.set_shader_parameter("accent_strength", float(palette.get("accent_strength", 0.42)))
+		return shader_material
+
 	var material = StandardMaterial3D.new()
 	match biome:
 		"shore":
@@ -132,6 +154,41 @@ func _create_biome_material(biome: String) -> Material:
 	material.roughness = 1.0
 	return material
 
+func _get_biome_material(biome: String) -> Material:
+	if not _biome_material_cache.has(biome):
+		_biome_material_cache[biome] = _create_biome_material(biome)
+	return _biome_material_cache[biome]
+
+func _biome_palette(biome: String) -> Dictionary:
+	match biome:
+		"shore":
+			return {
+				"base": Color(0.69, 0.64, 0.48),
+				"accent": Color(0.56, 0.5, 0.35),
+				"roughness": 0.9,
+				"metallic": 0.02,
+				"noise_scale": 0.18,
+				"accent_strength": 0.32
+			}
+		"highlands":
+			return {
+				"base": Color(0.42, 0.45, 0.5),
+				"accent": Color(0.33, 0.36, 0.4),
+				"roughness": 0.95,
+				"metallic": 0.03,
+				"noise_scale": 0.27,
+				"accent_strength": 0.38
+			}
+		_:
+			return {
+				"base": Color(0.2, 0.45, 0.24),
+				"accent": Color(0.14, 0.34, 0.19),
+				"roughness": 0.9,
+				"metallic": 0.02,
+				"noise_scale": 0.24,
+				"accent_strength": 0.48
+			}
+
 func _biome_display_name(biome_id: String) -> String:
 	match biome_id:
 		"shore":
@@ -142,9 +199,15 @@ func _biome_display_name(biome_id: String) -> String:
 			return "Jungle"
 
 func _spawn_fallback_landmark() -> void:
-	# Keep a guaranteed visible surface in Web builds even if procedural generation lags.
+	# Keep a temporary guaranteed surface in Web builds if procedural tiles lag.
+	if not OS.has_feature("web"):
+		return
+	_fallback_root = Node3D.new()
+	_fallback_root.name = "WebFallbackSurface"
+	add_child(_fallback_root)
+
 	var ground_body = StaticBody3D.new()
-	add_child(ground_body)
+	_fallback_root.add_child(ground_body)
 	ground_body.position = Vector3(0.0, 0.0, 0.0)
 
 	var ground_mesh = MeshInstance3D.new()
@@ -152,8 +215,8 @@ func _spawn_fallback_landmark() -> void:
 	ground_box.size = Vector3(36.0, 1.0, 36.0)
 	ground_mesh.mesh = ground_box
 	var ground_material = StandardMaterial3D.new()
-	ground_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ground_material.albedo_color = Color(0.16, 0.32, 0.22)
+	ground_material.albedo_color = Color(0.19, 0.34, 0.24)
+	ground_material.roughness = 0.95
 	ground_mesh.material_override = ground_material
 	ground_body.add_child(ground_mesh)
 
@@ -163,13 +226,9 @@ func _spawn_fallback_landmark() -> void:
 	ground_collision.shape = ground_shape
 	ground_body.add_child(ground_collision)
 
-	var beacon = MeshInstance3D.new()
-	var beacon_mesh = BoxMesh.new()
-	beacon_mesh.size = Vector3(1.2, 8.0, 1.2)
-	beacon.mesh = beacon_mesh
-	beacon.position = Vector3(0.0, 4.5, -10.0)
-	var beacon_material = StandardMaterial3D.new()
-	beacon_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	beacon_material.albedo_color = Color(1.0, 0.25, 0.55)
-	beacon.material_override = beacon_material
-	add_child(beacon)
+func _cleanup_fallback_landmark() -> void:
+	if _fallback_root == null:
+		return
+	if get_child_count() > 40:
+		_fallback_root.queue_free()
+		_fallback_root = null

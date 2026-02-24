@@ -120,6 +120,29 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 3. Re-run preview:
    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/quick_preview.sh 8060`
 
+## Visual Realism Toolkit (Open Source)
+- Integrated now (no external assets required):
+  - Procedural terrain shader:
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/assets/shaders/terrain_biome.gdshader`
+  - Water shader:
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/assets/shaders/celadora_water.gdshader`
+  - Sky dome shader:
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/assets/shaders/celadora_skydome.gdshader`
+  - Runtime world visuals controller:
+    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/world/world_visuals.gd`
+- Recommended external OSS stack:
+  - [Material Maker](https://github.com/RodZill4/material-maker) (MIT)
+  - [Poly Haven](https://polyhaven.com/license) (CC0)
+  - [ambientCG](https://ambientcg.com/index.php) (CC0)
+  - [Sky3D](https://github.com/TokisanGames/Sky3D) (MIT, optional)
+  - [Godot SSR Water](https://github.com/marcelb/GodotSSRWater) (MIT, optional)
+  - [godot_spatial_gardener](https://github.com/dreadpon/godot_spatial_gardener) (MIT, optional)
+  - [Basis Universal](https://github.com/BinomialLLC/basis_universal) (Apache-2.0, optional texture compression)
+- Detailed integration notes:
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/docs/realism_stack.md`
+- Renderer note:
+  - Web preview currently uses `compatibility` renderer for reliability. Keep this for browser builds; evaluate a separate desktop Forward+ profile when adding heavier visual plugins.
+
 ## Architecture Summary
 - Autoload singleton: `GameServices`
 - Modular services: inventory, crafting, save, lore, marketplace, network stub.

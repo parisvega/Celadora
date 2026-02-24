@@ -807,9 +807,9 @@ func _apply_responsive_layout(force: bool) -> void:
 	message_label.add_theme_font_size_override("font_size", info_font_size)
 
 	if compact_mode:
-		bottom_hud_background.offset_top = -244.0
+		bottom_hud_background.offset_top = -278.0
 	else:
-		bottom_hud_background.offset_top = -220.0
+		bottom_hud_background.offset_top = -254.0
 
 func _join_parts(parts: Array[String], separator: String) -> String:
 	if parts.is_empty():

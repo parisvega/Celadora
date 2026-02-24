@@ -22,73 +22,105 @@ color = Color(0.92, 0.05, 0.05, 0)
 [node name="TopAtmosphere" type="ColorRect" parent="."]
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 146.0
+offset_bottom = 226.0
 color = Color(0.02, 0.07, 0.13, 0.4)
 
 [node name="TopEdge" type="ColorRect" parent="."]
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 145.0
-offset_bottom = 147.0
+offset_top = 224.0
+offset_bottom = 226.0
 color = Color(0.55, 0.92, 1, 0.35)
 
 [node name="StatsCard" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = 14.0
+offset_top = -246.0
 offset_right = 412.0
-offset_bottom = 138.0
+offset_bottom = -120.0
+grow_vertical = 0
 
 [node name="StatsLabel" type="Label" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = 22.0
+offset_top = -238.0
 offset_right = 402.0
-offset_bottom = 44.0
+offset_bottom = -216.0
+grow_vertical = 0
 text = ""
 
 [node name="HPLabel" type="Label" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = 50.0
+offset_top = -210.0
 offset_right = 104.0
-offset_bottom = 72.0
+offset_bottom = -188.0
+grow_vertical = 0
 text = "HP"
 
 [node name="HPBar" type="ProgressBar" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 104.0
-offset_top = 52.0
+offset_top = -208.0
 offset_right = 400.0
-offset_bottom = 70.0
+offset_bottom = -190.0
+grow_vertical = 0
 max_value = 100.0
 value = 100.0
 show_percentage = false
 
 [node name="StaminaLabel" type="Label" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = 77.0
+offset_top = -183.0
 offset_right = 104.0
-offset_bottom = 99.0
+offset_bottom = -161.0
+grow_vertical = 0
 text = "STA"
 
 [node name="StaminaBar" type="ProgressBar" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 104.0
-offset_top = 79.0
+offset_top = -181.0
 offset_right = 400.0
-offset_bottom = 97.0
+offset_bottom = -163.0
+grow_vertical = 0
 max_value = 100.0
 value = 100.0
 show_percentage = false
 
 [node name="ShieldLabel" type="Label" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = 104.0
+offset_top = -156.0
 offset_right = 104.0
-offset_bottom = 126.0
+offset_bottom = -134.0
+grow_vertical = 0
 text = "SHD"
 
 [node name="ShieldBar" type="ProgressBar" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 104.0
-offset_top = 106.0
+offset_top = -154.0
 offset_right = 400.0
-offset_bottom = 124.0
+offset_bottom = -136.0
+grow_vertical = 0
 max_value = 100.0
 value = 0.0
 show_percentage = false
@@ -119,15 +151,15 @@ text = ""
 
 [node name="MessageCard" type="Panel" parent="."]
 offset_left = 16.0
-offset_top = 148.0
+offset_top = 154.0
 offset_right = 748.0
-offset_bottom = 194.0
+offset_bottom = 200.0
 
 [node name="MessageLabel" type="Label" parent="."]
 offset_left = 30.0
-offset_top = 158.0
+offset_top = 164.0
 offset_right = 736.0
-offset_bottom = 184.0
+offset_bottom = 190.0
 autowrap_mode = 3
 text = ""
 
@@ -167,45 +199,36 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -220.0
+offset_top = -254.0
 offset_bottom = 0.0
 color = Color(0.01, 0.05, 0.1, 0.62)
 
 [node name="RouteStripCard" type="Panel" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = -214.0
+offset_top = 58.0
 offset_right = -14.0
-offset_bottom = -184.0
+offset_bottom = 86.0
 grow_horizontal = 2
-grow_vertical = 0
 
 [node name="ObjectiveStripCard" type="Panel" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = -180.0
+offset_top = 90.0
 offset_right = -14.0
-offset_bottom = -152.0
+offset_bottom = 118.0
 grow_horizontal = 2
-grow_vertical = 0
 
 [node name="WorldStripCard" type="Panel" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = -148.0
+offset_top = 122.0
 offset_right = -14.0
-offset_bottom = -120.0
+offset_bottom = 150.0
 grow_horizontal = 2
-grow_vertical = 0
 
 [node name="InteractionStripCard" type="Panel" parent="."]
 anchors_preset = 12
@@ -213,9 +236,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = -116.0
+offset_top = -110.0
 offset_right = -14.0
-offset_bottom = -88.0
+offset_bottom = -84.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -225,53 +248,44 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = -82.0
+offset_top = -78.0
 offset_right = -14.0
 offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 0
 
 [node name="RouteLabel" type="Label" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = -210.0
+offset_top = 62.0
 offset_right = -28.0
-offset_bottom = -188.0
+offset_bottom = 84.0
 grow_horizontal = 2
-grow_vertical = 0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = ""
 
 [node name="ObjectiveLabel" type="Label" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = -176.0
+offset_top = 94.0
 offset_right = -28.0
-offset_bottom = -154.0
+offset_bottom = 116.0
 grow_horizontal = 2
-grow_vertical = 0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = ""
 
 [node name="WorldStatusLabel" type="Label" parent="."]
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = 28.0
-offset_top = -144.0
+offset_top = 126.0
 offset_right = -28.0
-offset_bottom = -122.0
+offset_bottom = 148.0
 grow_horizontal = 2
-grow_vertical = 0
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -298,9 +312,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 22.0
-offset_top = -76.0
+offset_top = -72.0
 offset_right = -22.0
-offset_bottom = -50.0
+offset_bottom = -46.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_alignment = 1
@@ -314,9 +328,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 22.0
-offset_top = -44.0
+offset_top = -40.0
 offset_right = -22.0
-offset_bottom = -16.0
+offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_alignment = 1
