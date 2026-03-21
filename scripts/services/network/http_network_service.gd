@@ -57,7 +57,12 @@ func _parse_base_url() -> void:
 	if host_parts.size() > 1:
 		_port = int(host_parts[1])
 
-func _request_json(method: HTTPClient.Method, path: String, payload: Dictionary = {}) -> Dictionary:
+func _request_json(
+	method: HTTPClient.Method,
+	path: String,
+	payload: Dictionary = {},
+	extra_headers: PackedStringArray = PackedStringArray()
+) -> Dictionary:
 	if _host.is_empty():
 		return {"ok": false, "error": "Authority URL is not configured.", "data": {}}
 
@@ -82,6 +87,8 @@ func _request_json(method: HTTPClient.Method, path: String, payload: Dictionary 
 		return {"ok": false, "error": "Authority connection did not reach connected state.", "data": {}}
 
 	var headers: PackedStringArray = ["Accept: application/json"]
+	for header in extra_headers:
+		headers.append(header)
 	var body_text: String = ""
 	if method != HTTPClient.METHOD_GET:
 		headers.append("Content-Type: application/json")

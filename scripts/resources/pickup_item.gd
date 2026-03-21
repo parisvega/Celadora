@@ -5,6 +5,8 @@ const DustShapeLibrary = preload("res://scripts/resources/dust_shape_library.gd"
 @export var item_id: String = "bot_scrap"
 @export var quantity: int = 1
 @export var credits: int = 0
+@export var claim_id: String = ""
+@export var claim_source: String = ""
 
 @export var gravity_scale: float = 1.0
 @export var air_drag: float = 0.12
@@ -74,7 +76,9 @@ func collect() -> void:
 			max(credits, 0),
 			"pickup.collect",
 			{
-				"pickup_position": [global_position.x, global_position.y, global_position.z]
+				"pickup_position": [global_position.x, global_position.y, global_position.z],
+				"claim_id": claim_id,
+				"claim_source": claim_source
 			}
 		)
 	else:

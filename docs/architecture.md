@@ -19,6 +19,7 @@
 - `NetworkService`: stable transport contract for authority calls.
 - `LocalNetworkService`: in-process authoritative implementation used by default.
 - `HttpNetworkService`: optional desktop transport for a local/external authority process.
+- `NakamaNetworkService`: optional Nakama RPC transport that preserves the same authority contract.
 - `GameServices.world_state`: lightweight persistent world flags (for example `ruins_terminal_primed`).
 
 ## Core Controllers
@@ -50,6 +51,7 @@ Moon dust runtime identity is also data-driven via `items[].dust_profile`:
 ## MMO Expansion Seams
 - Replace `HttpNetworkService` endpoint targets with Nakama-backed RPC/storage calls while preserving service signatures.
 - Keep `AuthorityService` as the single gameplay seam for reward claims, crafting requests, market orders, and state synchronization.
+- Reward/pickup settlement now carries explicit `claim_id` values so the authority layer can reject duplicate claims.
 - Move resource-claim validation, enemy state, and combat resolution server-side in later slices.
 - Keep client as prediction/presentation layer while authority transitions to backend.
 - Use `NetworkService.wrap_client_event(...)` envelopes as stable client-event contracts when routing through authoritative RPC pipelines.
@@ -68,6 +70,10 @@ Moon dust runtime identity is also data-driven via `items[].dust_profile`:
 - Optional server process:
   - `scripts/server/authority_server.mjs`
   - persisted local state: `artifacts/authority/state.local.json`
+- Optional Nakama provider:
+  - `scripts/services/network/nakama_network_service.gd`
+  - `nakama/modules/index.js`
+  - integration notes: `docs/nakama_integration.md`
 
 ## Economy Safety Boundary
 - `scripts/economy/token_bridge.gd` defines a disabled interface only.

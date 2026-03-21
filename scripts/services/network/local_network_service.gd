@@ -7,6 +7,7 @@ var _state_present: bool = false
 var _item_defs: Dictionary = {}
 var _recipe_defs: Dictionary = {}
 var _authoritative_state: Dictionary = {}
+var _claimed_reward_ids: Dictionary = {}
 
 func setup(data_service: Node) -> void:
 	_data_service = data_service
@@ -81,6 +82,7 @@ func submit_reward_claim(claim: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "Not connected.", "data": {}}
 
 	var item_id: String = str(claim.get("item_id", "")).strip_edges()
+	var claim_id: String = str(claim.get("claim_id", "")).strip_edges()
 	var quantity: int = max(0, int(claim.get("quantity", 0)))
 	var base_credits: int = max(0, int(claim.get("credits", 0)))
 	if item_id.is_empty() and base_credits <= 0:
@@ -89,6 +91,10 @@ func submit_reward_claim(claim: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "Reward claim quantity must be at least 1.", "data": {}}
 	if not item_id.is_empty() and _item_defs.is_empty() == false and _item_defs.has(item_id) == false:
 		return {"ok": false, "error": "Unknown item reward.", "data": {}}
+	if not claim_id.is_empty():
+		if _claimed_reward_ids.has(claim_id):
+			return {"ok": false, "error": "Reward claim already consumed.", "data": {}}
+		_claimed_reward_ids[claim_id] = true
 
 	if not item_id.is_empty():
 		var inventory: Dictionary = _get_inventory_state()
@@ -282,6 +288,7 @@ func _reset_authoritative_state(state_present: bool) -> void:
 		"timestamp": ""
 	}
 	_state_present = state_present
+	_claimed_reward_ids = {}
 
 func _apply_external_state(state: Dictionary) -> void:
 	_reset_authoritative_state(true)

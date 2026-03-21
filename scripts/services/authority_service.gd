@@ -91,8 +91,10 @@ func sync_state(local_state: Dictionary, force_bootstrap: bool = false) -> Dicti
 func claim_reward(item_id: String, quantity: int = 0, credits: int = 0, source: String = "", metadata: Dictionary = {}) -> Dictionary:
 	if not _connected:
 		return {"ok": false, "reason": "Authority service is not connected."}
+	var claim_id: String = str(metadata.get("claim_id", "")).strip_edges()
 	var response: Dictionary = _network_service.submit_reward_claim({
 		"session_id": _session_id,
+		"claim_id": claim_id,
 		"item_id": item_id,
 		"quantity": quantity,
 		"credits": credits,

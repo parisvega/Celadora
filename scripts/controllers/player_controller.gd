@@ -253,7 +253,8 @@ func _resolve_mine_action(target: Object, payload: Dictionary) -> void:
 	var quantity = int(result.get("quantity", 1))
 	var credits_reward = int(result.get("credits", 0))
 	if item_id != "" or credits_reward > 0:
-		_spawn_reward_pickup(item_id, quantity, credits_reward, _drop_position_from_target(target))
+		var claim_source: String = "resource:%s" % str(target.get_instance_id())
+		_spawn_reward_pickup(item_id, quantity, credits_reward, _drop_position_from_target(target), claim_source)
 
 	GameServices.log_event("mining.node_mined", {
 		"item_id": item_id,
@@ -530,10 +531,20 @@ func _drop_position_from_target(target: Object) -> Vector3:
 		return target_node.global_position + Vector3(0.0, 0.5, 0.0)
 	return global_position + (-camera.global_transform.basis.z * 1.0) + Vector3(0.0, 1.1, 0.0)
 
-func _spawn_reward_pickup(item_id: String, quantity: int, credits_reward: int, position_hint: Vector3) -> void:
+func _spawn_reward_pickup(
+	item_id: String,
+	quantity: int,
+	credits_reward: int,
+	position_hint: Vector3,
+	claim_source: String = "runtime"
+) -> void:
+	var claim_id: String = _build_reward_claim_id(claim_source, item_id, quantity, credits_reward)
 	if PickupItemScene == null:
 		if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
-			GameServices.authority_service.claim_reward(item_id, quantity, credits_reward, "pickup.spawn_fallback")
+			GameServices.authority_service.claim_reward(item_id, quantity, credits_reward, "pickup.spawn_fallback", {
+				"claim_id": claim_id,
+				"claim_source": claim_source
+			})
 		else:
 			if item_id != "":
 				GameServices.inventory_service.add_item(item_id, quantity)
@@ -547,6 +558,8 @@ func _spawn_reward_pickup(item_id: String, quantity: int, credits_reward: int, p
 	pickup.item_id = item_id
 	pickup.quantity = max(quantity, 1)
 	pickup.credits = max(credits_reward, 0)
+	pickup.claim_id = claim_id
+	pickup.claim_source = claim_source
 
 	var dust_profile: Dictionary = GameServices.data_service.get_dust_profile(item_id)
 	if pickup.has_method("apply_dust_profile") and not dust_profile.is_empty():
@@ -561,3 +574,12 @@ func _spawn_reward_pickup(item_id: String, quantity: int, credits_reward: int, p
 	var launch_velocity: Vector3 = forward * launch_speed + side + Vector3.UP * lift_speed
 	if pickup.has_method("set_initial_motion"):
 		pickup.set_initial_motion(launch_velocity)
+
+func _build_reward_claim_id(source_tag: String, item_id: String, quantity: int, credits_reward: int) -> String:
+	return "%s:%s:%d:%d:%d" % [
+		source_tag,
+		item_id if not item_id.is_empty() else "credits",
+		max(quantity, 0),
+		max(credits_reward, 0),
+		Time.get_ticks_usec()
+	]

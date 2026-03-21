@@ -96,6 +96,8 @@ func _drop_seed_and_vanish() -> void:
 		pickup.item_id = "dream_seed"
 		pickup.quantity = 1
 		pickup.credits = 0
+		pickup.claim_source = "dream_keeper"
+		pickup.claim_id = "dream_keeper:%d" % Time.get_ticks_usec()
 		pickup.global_position = drop_position
 	GameServices.log_event("dream_keeper.seed_dropped", {
 		"position": [drop_position.x, drop_position.y, drop_position.z]

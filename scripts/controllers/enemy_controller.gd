@@ -136,13 +136,17 @@ func _die() -> void:
 		"credit_reward": int(_stats.get("credit_reward", 0))
 	})
 	if pickup_scene != null:
+		var drop_index: int = 0
 		for drop in _stats.get("drops", []):
 			var pickup = pickup_scene.instantiate()
 			get_parent().add_child(pickup)
 			pickup.item_id = str(drop.get("item_id", "bot_scrap"))
 			pickup.quantity = int(drop.get("quantity", 1))
 			pickup.credits = int(_stats.get("credit_reward", 0))
+			pickup.claim_source = "enemy:%s:%d" % [enemy_id, get_instance_id()]
+			pickup.claim_id = "%s:drop:%d:%d" % [pickup.claim_source, drop_index, Time.get_ticks_usec()]
 			pickup.global_position = global_position + Vector3(randf_range(-0.6, 0.6), 0.7, randf_range(-0.6, 0.6))
+			drop_index += 1
 	queue_free()
 
 func _create_health_label() -> void:

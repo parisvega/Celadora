@@ -31,6 +31,34 @@ Authority scope in this slice:
 - authoritative now: inventory, Celador Credits, crafting outputs, market settlement
 - still client-simulated: world terrain/resources, enemy simulation, combat hit validation, movement
 
+## Optional Nakama Provider
+Celadora also includes a Nakama-ready transport and runtime module skeleton so the current authority contract can move to RPC/storage without changing gameplay services.
+
+Client-side provider selection:
+- `CELADORA_NETWORK_PROVIDER=nakama`
+- `CELADORA_NAKAMA_URL=http://127.0.0.1:7350`
+- optional:
+  - `CELADORA_NAKAMA_SERVER_KEY=defaultkey`
+  - `CELADORA_NAKAMA_DEVICE_ID=your-device-id`
+  - `CELADORA_NAKAMA_USERNAME=Local Pioneer`
+
+Current Nakama artifacts:
+- client transport:
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/services/network/nakama_network_service.gd`
+- server runtime module:
+  - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/nakama/modules/index.js`
+
+Nakama scope today:
+- mirrors the current authority slice for:
+  - connect/bootstrap
+  - state sync
+  - reward claims
+  - crafting
+  - marketplace settlement
+  - combat event logging
+- remains optional and is not required for v0.1 runtime
+- does not yet include matchmaking, shard orchestration, resource-node authority, or server-side combat resolution
+
 ## Controls
 - `W/A/S/D`: Move
 - `Shift`: Run
@@ -163,6 +191,7 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 - Modular services: inventory, crafting, save, lore, marketplace, authority, network.
 - Provider seam: `NetworkService` interface + `LocalNetworkService` / `HttpNetworkService` implementations.
 - `AuthorityService` now owns the handoff between local runtime state and authoritative inventory/credits/marketplace mutation flows.
+- Reward claims now carry claim IDs so pickup settlement can be rejected when the same drop is claimed twice.
 - Persistent world progression seam: `GameServices.world_state` (used by ruins-terminal state and future world flags).
 - Economy isolation: disabled `TokenBridge` stubs in `/scripts/economy`.
 
@@ -181,6 +210,8 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
   - `node /Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/server/authority_smoke.mjs`
 - Start the optional local authority server directly with Node:
   - `node /Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/server/authority_server.mjs`
+- Check Nakama runtime module syntax locally:
+  - `node --check /Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/nakama/modules/index.js`
 - Run automated QA agent (headless + report files):
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/qa/run_qa_agent.sh`
   - Outputs:

@@ -84,6 +84,7 @@ function handleSyncState(body) {
   const forceBootstrap = Boolean(body.force_bootstrap);
   if (forceBootstrap || !store.state_present) {
     store.player = normalizeState(incoming);
+    store.claimed_rewards = {};
     store.state_present = true;
     ensureMarketSeeded();
     persistStore();
@@ -100,6 +101,7 @@ function handleSyncState(body) {
 
 function handleRewardClaim(body) {
   const itemId = typeof body.item_id === "string" ? body.item_id.trim() : "";
+  const claimId = typeof body.claim_id === "string" ? body.claim_id.trim() : "";
   const quantity = Math.max(0, Number.parseInt(body.quantity ?? "0", 10));
   const credits = Math.max(0, Number.parseInt(body.credits ?? "0", 10));
   if (!itemId && credits <= 0) {
@@ -110,6 +112,12 @@ function handleRewardClaim(body) {
   }
   if (itemId && !itemMap.has(itemId)) {
     return fail(400, "Unknown item reward.");
+  }
+  if (claimId && store.claimed_rewards[claimId]) {
+    return fail(409, "Reward claim already consumed.");
+  }
+  if (claimId) {
+    store.claimed_rewards[claimId] = Math.floor(Date.now() / 1000);
   }
 
   if (itemId) {
@@ -380,6 +388,7 @@ function normalizeStore(raw) {
     session_id: typeof storeIn.session_id === "string" && storeIn.session_id ? storeIn.session_id : `http_${Math.floor(Date.now() / 1000)}`,
     state_present: Boolean(storeIn.state_present),
     player: normalizeState(storeIn.player),
+    claimed_rewards: isObject(storeIn.claimed_rewards) ? deepClone(storeIn.claimed_rewards) : {},
     event_log: Array.isArray(storeIn.event_log) ? deepClone(storeIn.event_log) : [],
   };
 }

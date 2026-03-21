@@ -14,6 +14,7 @@ const MarketplaceServiceScript = preload("res://scripts/services/marketplace_ser
 const AuthorityServiceScript = preload("res://scripts/services/authority_service.gd")
 const HttpNetworkServiceScript = preload("res://scripts/services/network/http_network_service.gd")
 const LocalNetworkServiceScript = preload("res://scripts/services/network/local_network_service.gd")
+const NakamaNetworkServiceScript = preload("res://scripts/services/network/nakama_network_service.gd")
 
 var data_service: Node = null
 var event_log_service: Node = null
@@ -173,6 +174,17 @@ func _set_world_state_from_loaded(state: Dictionary) -> void:
 	set_world_state(loaded_world_state)
 
 func _create_network_service() -> Node:
+	var network_provider: String = OS.get_environment("CELADORA_NETWORK_PROVIDER").strip_edges().to_lower()
+	var nakama_url: String = OS.get_environment("CELADORA_NAKAMA_URL").strip_edges()
+	if network_provider == "nakama" or not nakama_url.is_empty():
+		var nakama_service := NakamaNetworkServiceScript.new()
+		nakama_service.setup(
+			nakama_url if not nakama_url.is_empty() else "http://127.0.0.1:7350",
+			OS.get_environment("CELADORA_NAKAMA_SERVER_KEY").strip_edges() if not OS.get_environment("CELADORA_NAKAMA_SERVER_KEY").strip_edges().is_empty() else "defaultkey",
+			OS.get_environment("CELADORA_NAKAMA_DEVICE_ID").strip_edges(),
+			OS.get_environment("CELADORA_NAKAMA_USERNAME").strip_edges() if not OS.get_environment("CELADORA_NAKAMA_USERNAME").strip_edges().is_empty() else "Local Pioneer"
+		)
+		return nakama_service
 	var authority_url: String = OS.get_environment("CELADORA_AUTHORITY_URL").strip_edges()
 	if not authority_url.is_empty():
 		var http_service := HttpNetworkServiceScript.new()
