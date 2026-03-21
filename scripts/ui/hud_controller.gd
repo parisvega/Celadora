@@ -58,6 +58,10 @@ var _session_started_unix: float = 0.0
 var _completion_panel_time_left: float = 0.0
 var _ui_anim_time: float = 0.0
 var _last_compact_mode: bool = false
+var _last_viewport_size: Vector2 = Vector2.ZERO
+var _last_controls_visible: bool = true
+var _help_pinned: bool = false
+var _help_auto_hide_left: float = 11.0
 
 const HUD_COLORS := {
 	"cyan": Color(0.44, 0.93, 1.0, 1.0),
@@ -105,25 +109,34 @@ const LOCATION_SHORT_NAMES = {
 	"greegion_ruins": "Greegion Ruins"
 }
 
+const INTERACTION_IDLE_HINT: String = ""
+
 func _ready() -> void:
 	_session_started_unix = Time.get_unix_time_from_system()
 	add_to_group("hud")
+	_ensure_hud_input_action()
 	_apply_hud_design_system()
 	_apply_responsive_layout(true)
 	crosshair.text = "+"
-	help_label.text = "I Inventory  |  O Objectives  |  C Crafting  |  J Lore  |  M Market  |  E Interact  |  Left Click Swing (Mine/Attack)  |  F5 Save  |  F8 Time Skip  |  F9 Reset  |  F3 Debug"
-	movement_label.text = "Movement: W/A/S/D Move  |  Shift Run  |  Space Jump  |  Mouse Look  |  Esc Cursor"
+	help_label.text = "I Inventory | O Objectives | C Crafting | J Lore | M Market | E Interact | F1 HUD Help | F3 Debug"
+	movement_label.text = "W/A/S/D Move | Shift Run | Space Jump | Left Click Mine/Attack | F5 Save | Esc Cursor"
 	compass_label.text = "Facing N"
-	route_label.text = "Route: Initializing..."
+	route_label.text = "Initializing route..."
 	target_status_label.text = ""
-	interaction_label.text = "Interact: Scan nearby node, terminal, or bot."
+	interaction_label.text = INTERACTION_IDLE_HINT
 	objective_label.text = "Objective: Initializing..."
-	world_status_label.text = "World: ..."
+	world_status_label.text = "World status pending..."
 	debug_panel.visible = false
 	debug_body.text = ""
 	completion_panel.visible = false
 	completion_summary.text = ""
 	completion_meta.text = ""
+	message_card.visible = false
+	target_status_card.visible = false
+	interaction_strip_card.visible = false
+	controls_card.visible = true
+	help_label.visible = true
+	movement_label.visible = true
 	_set_all_panels_hidden()
 	_cache_world_refs()
 
@@ -142,6 +155,7 @@ func _ready() -> void:
 	push_message("Systems online.")
 	_show_data_validation_state()
 	_update_damage_flash(0.0)
+	_apply_responsive_layout(true)
 
 func set_player(player: Node) -> void:
 	_player = player
@@ -178,6 +192,15 @@ func _process(delta: float) -> void:
 		toggle_panel("market")
 	if Input.is_action_just_pressed("toggle_debug"):
 		_toggle_debug_overlay()
+	if Input.is_action_just_pressed("toggle_hud_help"):
+		_help_pinned = not _help_pinned
+		if _help_pinned:
+			push_message("HUD help pinned. Press F1 to hide.")
+		else:
+			push_message("HUD help hidden. Press F1 to pin.")
+
+	if not _help_pinned and _help_auto_hide_left > 0.0:
+		_help_auto_hide_left = max(0.0, _help_auto_hide_left - delta)
 
 	_update_stats_text()
 	_update_world_status(delta)
@@ -213,47 +236,56 @@ func push_message(text: String) -> void:
 	message_label.text = text
 	_message_time_left = 4.0
 
+func _ensure_hud_input_action() -> void:
+	if InputMap.has_action("toggle_hud_help"):
+		return
+	InputMap.add_action("toggle_hud_help")
+	var event := InputEventKey.new()
+	event.physical_keycode = KEY_F1
+	InputMap.action_add_event("toggle_hud_help", event)
+
 func _apply_hud_design_system() -> void:
-	top_atmosphere.color = Color(0.03, 0.09, 0.15, 0.42)
-	top_edge.color = Color(0.5, 0.94, 1.0, 0.35)
-	bottom_hud_background.color = Color(0.01, 0.05, 0.1, 0.64)
-	crosshair_halo.color = Color(0.52, 0.92, 1.0, 0.13)
+	top_atmosphere.visible = false
+	top_edge.visible = false
+	bottom_hud_background.visible = false
+	crosshair_halo.visible = false
+	crosshair_halo.color = Color(0.52, 0.92, 1.0, 0.07)
 	damage_flash.color = Color(1.0, 0.2, 0.24, 0.0)
 
-	_style_panel(stats_card, HUD_COLORS["ink"], HUD_COLORS["cyan_dim"], 14.0)
-	_style_panel(compass_card, Color(0.04, 0.1, 0.16, 0.84), HUD_COLORS["cyan_dim"], 14.0)
-	_style_panel(message_card, Color(0.05, 0.1, 0.16, 0.86), Color(0.34, 0.68, 0.82, 0.45), 10.0)
-	_style_panel(target_status_card, Color(0.04, 0.1, 0.16, 0.86), HUD_COLORS["cyan_dim"], 12.0)
-	_style_panel(route_strip_card, Color(0.06, 0.15, 0.24, 0.84), Color(0.27, 0.66, 0.82, 0.45), 10.0)
-	_style_panel(objective_strip_card, Color(0.05, 0.12, 0.2, 0.84), Color(0.24, 0.58, 0.76, 0.4), 10.0)
-	_style_panel(world_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
-	_style_panel(interaction_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
-	_style_panel(controls_card, Color(0.04, 0.09, 0.16, 0.85), Color(0.2, 0.5, 0.7, 0.42), 10.0)
+	_style_panel(stats_card, Color(0.03, 0.08, 0.13, 0.72), Color(0.28, 0.6, 0.74, 0.3), 12.0)
+	_style_panel(compass_card, Color(0.03, 0.09, 0.15, 0.7), Color(0.28, 0.6, 0.74, 0.3), 12.0)
+	_style_panel(message_card, Color(0.03, 0.08, 0.13, 0.7), Color(0.26, 0.56, 0.7, 0.24), 10.0)
+	_style_panel(target_status_card, Color(0.03, 0.09, 0.15, 0.74), Color(0.3, 0.64, 0.78, 0.32), 10.0)
+	_style_panel(route_strip_card, Color(0.03, 0.09, 0.15, 0.7), Color(0.28, 0.6, 0.74, 0.28), 10.0)
+	_style_panel(objective_strip_card, Color(0.03, 0.09, 0.15, 0.72), Color(0.3, 0.62, 0.74, 0.32), 10.0)
+	_style_panel(world_strip_card, Color(0.03, 0.09, 0.15, 0.72), Color(0.28, 0.6, 0.74, 0.28), 10.0)
+	_style_panel(interaction_strip_card, Color(0.04, 0.1, 0.16, 0.78), Color(0.3, 0.64, 0.78, 0.32), 10.0)
+	_style_panel(controls_card, Color(0.03, 0.08, 0.14, 0.72), Color(0.28, 0.58, 0.72, 0.26), 10.0)
 	_style_panel(debug_panel, Color(0.03, 0.08, 0.13, 0.94), HUD_COLORS["cyan_dim"], 12.0)
-	_style_panel(completion_panel, Color(0.03, 0.08, 0.13, 0.95), Color(0.35, 0.78, 0.95, 0.6), 14.0)
+	_style_panel(completion_panel, Color(0.03, 0.08, 0.13, 0.9), Color(0.35, 0.78, 0.95, 0.46), 14.0)
 	_style_progress_bar(hp_bar, HUD_COLORS["red"])
 	_style_progress_bar(stamina_bar, HUD_COLORS["amber"])
 	_style_progress_bar(shield_bar, HUD_COLORS["cyan"])
 
-	_style_label(stats_label, HUD_COLORS["text"], 16, true)
-	_style_label(compass_label, HUD_COLORS["text"], 16, true)
-	_style_label(route_label, HUD_COLORS["cyan"], 15, true)
-	_style_label(objective_label, HUD_COLORS["text"], 15, true)
-	_style_label(world_status_label, HUD_COLORS["text_muted"], 14, false)
-	_style_label(interaction_label, HUD_COLORS["lime"], 14, false)
-	_style_label(help_label, HUD_COLORS["text_muted"], 14, false)
-	_style_label(movement_label, HUD_COLORS["text_muted"], 14, false)
-	_style_label(message_label, HUD_COLORS["text"], 15, false)
-	_style_label(target_status_label, HUD_COLORS["text"], 14, true)
+	_style_label(stats_label, HUD_COLORS["text"], 14, true)
+	_style_label(compass_label, HUD_COLORS["text"], 14, false)
+	_style_label(route_label, HUD_COLORS["cyan"], 13, false)
+	_style_label(objective_label, HUD_COLORS["text"], 13, false)
+	_style_label(world_status_label, HUD_COLORS["text_muted"], 12, false)
+	_style_label(interaction_label, HUD_COLORS["lime"], 13, false)
+	_style_label(help_label, HUD_COLORS["text_muted"], 12, false)
+	_style_label(movement_label, HUD_COLORS["text_muted"], 12, false)
+	_style_label(message_label, HUD_COLORS["text"], 13, false)
+	_style_label(target_status_label, HUD_COLORS["text"], 12, false)
 	_style_label(hp_label, HUD_COLORS["red"], 13, true)
 	_style_label(stamina_label, HUD_COLORS["amber"], 13, true)
 	_style_label(shield_label, HUD_COLORS["cyan"], 13, true)
-	_style_label(crosshair, HUD_COLORS["cyan"], 28, true)
-	_style_label(completion_meta, HUD_COLORS["text_muted"], 14, false)
-	_style_label(get_node("CompletionPanel/VBox/Title") as Label, HUD_COLORS["cyan"], 22, true)
+	_style_label(crosshair, HUD_COLORS["cyan"], 19, false)
+	_style_label(completion_meta, HUD_COLORS["text_muted"], 12, false)
+	_style_label(get_node("CompletionPanel/VBox/Title") as Label, HUD_COLORS["cyan"], 18, true)
 	debug_body.add_theme_color_override("default_color", HUD_COLORS["text"])
 	completion_summary.add_theme_color_override("default_color", HUD_COLORS["text"])
-	completion_summary.add_theme_font_size_override("normal_font_size", 17)
+	completion_summary.add_theme_font_size_override("normal_font_size", 14)
 
 func _style_panel(panel: Panel, bg_color: Color, border_color: Color, corner_radius: float = 10.0) -> void:
 	if panel == null:
@@ -342,12 +374,7 @@ func _update_stats_text() -> void:
 	hp_bar.value = clamp(health, 0.0, hp_bar.max_value)
 	stamina_bar.value = clamp(stamina, 0.0, stamina_bar.max_value)
 	shield_bar.value = clamp(shield, 0.0, shield_bar.max_value)
-	stats_label.text = "Vitals  |  HP %.0f  STA %.0f  SHD %.0f  |  Credits %d" % [
-		health,
-		stamina,
-		shield,
-		GameServices.inventory_service.credits
-	]
+	stats_label.text = "Vitals | Credits %d" % GameServices.inventory_service.credits
 
 func _on_player_stats_updated() -> void:
 	_update_stats_text()
@@ -388,17 +415,20 @@ func _on_item_crafted(recipe_id: String, _outputs: Dictionary) -> void:
 
 func _on_interaction_hint_changed(text: String) -> void:
 	if text.is_empty():
-		interaction_label.text = "Interact: Scan nearby node, terminal, or bot."
-		_style_panel(interaction_strip_card, Color(0.05, 0.11, 0.18, 0.82), Color(0.2, 0.5, 0.7, 0.38), 10.0)
+		interaction_label.text = INTERACTION_IDLE_HINT
+		interaction_strip_card.visible = false
 		return
-	interaction_label.text = "Interact: %s" % text
-	_style_panel(interaction_strip_card, Color(0.07, 0.16, 0.22, 0.9), Color(0.44, 0.93, 1.0, 0.52), 10.0)
+	interaction_label.text = "Interact: %s" % _trim_text(text, 72)
+	interaction_strip_card.visible = true
+	_style_panel(interaction_strip_card, Color(0.05, 0.13, 0.2, 0.86), Color(0.44, 0.93, 1.0, 0.42), 10.0)
 
 func _on_interaction_target_changed(status: Dictionary) -> void:
 	if status.is_empty():
 		target_status_label.text = ""
+		target_status_card.visible = false
 		_style_panel(target_status_card, Color(0.04, 0.1, 0.16, 0.86), HUD_COLORS["cyan_dim"], 12.0)
 		return
+	target_status_card.visible = true
 	var kind: String = str(status.get("type", ""))
 	match kind:
 		"resource":
@@ -464,7 +494,11 @@ func _update_objectives(announce: bool) -> void:
 			next_objective = str(OBJECTIVE_TITLES.get(objective_id, objective_id))
 			break
 
-	objective_label.text = "Objective %d/%d: %s" % [completed_count, OBJECTIVE_ORDER.size(), next_objective]
+	objective_label.text = "Objective %d/%d: %s" % [
+		completed_count,
+		OBJECTIVE_ORDER.size(),
+		_trim_text(next_objective, 62)
+	]
 	if completed_count >= OBJECTIVE_ORDER.size():
 		_style_panel(objective_strip_card, Color(0.08, 0.2, 0.15, 0.9), Color(0.55, 0.94, 0.66, 0.62), 10.0)
 		if announce and not _all_objectives_announced:
@@ -527,8 +561,8 @@ func _update_world_status(delta: float) -> void:
 	_last_world_status_refresh = 0.0
 
 	if _player == null:
-		world_status_label.text = "World: waiting for player..."
-		route_label.text = "Route: waiting for player..."
+		world_status_label.text = "World pending..."
+		route_label.text = "Route pending..."
 		return
 	if _day_night_cycle == null or _world_spawner == null or _dream_keeper_spawner == null:
 		_cache_world_refs()
@@ -574,19 +608,17 @@ func _update_world_status(delta: float) -> void:
 	var target_state: String = "DONE" if bool(nav.get("unlocked", false)) else "NEW"
 	_update_compass_text(nav)
 
-	world_status_label.text = "Target %s %dm %s (%s)  |  Pos %.0f,%.0f  |  %s %.1fh  |  %s  |  Dream %s" % [
-		target_text,
-		target_distance,
-		target_direction,
-		target_state,
-		_player.global_position.x,
-		_player.global_position.z,
+	world_status_label.text = "%s %.1fh | %s | Dream %s | Target %s %dm %s (%s)" % [
 		phase_text,
 		time_of_day,
 		biome_text,
-		dream_text
+		dream_text,
+		target_text,
+		target_distance,
+		target_direction,
+		target_state
 	]
-	route_label.text = _build_route_text(nav, phase_text, dream_text)
+	route_label.text = _compact_route_text(_build_route_text(nav, phase_text, dream_text))
 	if phase_text == "Night":
 		_style_panel(world_strip_card, Color(0.08, 0.08, 0.18, 0.86), Color(0.62, 0.74, 1.0, 0.42), 10.0)
 	else:
@@ -616,11 +648,11 @@ func _update_compass_text(current_nav: Dictionary) -> void:
 	var nav_name: String = str(current_nav.get("name", "No marker"))
 	var nav_direction: String = str(current_nav.get("direction", "N"))
 	var nav_distance: int = int(current_nav.get("distance_m", 0))
-	var nav_state: String = "DONE" if bool(current_nav.get("unlocked", false)) else "NEW"
+	var nav_state: String = "(Done)" if bool(current_nav.get("unlocked", false)) else "(New)"
 	var lore_progress: String = "%d/3" % GameServices.lore_journal_service.get_unlocked_ids().size()
-	compass_label.text = "Facing %s  |  Next %s %s %dm (%s)  |  Lore %s" % [
+	compass_label.text = "Facing %s | Next %s %s %dm %s | Lore %s" % [
 		facing,
-		nav_name,
+		_trim_text(nav_name, 18),
 		nav_direction,
 		nav_distance,
 		nav_state,
@@ -679,6 +711,7 @@ func _next_incomplete_objective_id() -> String:
 func _toggle_debug_overlay() -> void:
 	_debug_overlay_visible = not _debug_overlay_visible
 	debug_panel.visible = _debug_overlay_visible
+	_apply_responsive_layout(true)
 	if _debug_overlay_visible:
 		_debug_refresh_left = 0.0
 		push_message("Debug overlay enabled.")
@@ -762,35 +795,31 @@ func _update_debug_overlay(delta: float) -> void:
 	debug_body.text = _join_parts(lines, "\n")
 
 func _animate_hud(_delta: float) -> void:
-	var route_pulse: float = 0.78 + 0.22 * (sin(_ui_anim_time * 2.6) * 0.5 + 0.5)
-	route_label.modulate = Color(1.0, 1.0, 1.0, route_pulse)
-	route_strip_card.modulate = Color(1.0, 1.0, 1.0, 0.88 + route_pulse * 0.12)
+	route_label.modulate = Color(1.0, 1.0, 1.0, 0.96)
+	route_strip_card.modulate = Color(1.0, 1.0, 1.0, 0.96)
 
-	var halo_strength: float = 0.09 + 0.08 * (sin(_ui_anim_time * 3.8) * 0.5 + 0.5)
-	crosshair_halo.color = Color(0.52, 0.92, 1.0, halo_strength)
-	var halo_size: float = 20.0 + (sin(_ui_anim_time * 3.8) * 2.4)
-	crosshair_halo.offset_left = -halo_size
-	crosshair_halo.offset_top = -halo_size
-	crosshair_halo.offset_right = halo_size
-	crosshair_halo.offset_bottom = halo_size
-
-	if _message_time_left > 0.0:
+	if _message_time_left > 0.0 and not message_label.text.is_empty():
 		message_card.visible = true
-		var fade: float = clamp(_message_time_left / 4.0, 0.15, 1.0)
-		message_card.modulate = Color(1.0, 1.0, 1.0, 0.55 + fade * 0.45)
+		message_label.visible = true
+		var fade: float = clamp(_message_time_left / 4.0, 0.0, 1.0)
+		message_card.modulate = Color(1.0, 1.0, 1.0, 0.4 + fade * 0.6)
 	else:
-		message_card.modulate = Color(1.0, 1.0, 1.0, 0.34)
+		message_card.visible = false
+		message_label.visible = false
 
 	if completion_panel.visible:
-		var completion_pulse: float = 0.9 + 0.1 * (sin(_ui_anim_time * 2.2) * 0.5 + 0.5)
+		var completion_pulse: float = 0.94 + 0.06 * (sin(_ui_anim_time * 1.8) * 0.5 + 0.5)
 		completion_panel.modulate = Color(1.0, 1.0, 1.0, completion_pulse)
 
 func _apply_responsive_layout(force: bool) -> void:
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var compact_mode: bool = viewport_size.x < 1140.0
-	if not force and compact_mode == _last_compact_mode:
+	var compact_mode: bool = viewport_size.x < 1240.0 or viewport_size.y < 760.0
+	var controls_visible: bool = _controls_help_visible()
+	if not force and compact_mode == _last_compact_mode and _last_viewport_size == viewport_size and _last_controls_visible == controls_visible:
 		return
 	_last_compact_mode = compact_mode
+	_last_viewport_size = viewport_size
+	_last_controls_visible = controls_visible
 
 	var main_font_size: int = 13 if compact_mode else 15
 	var info_font_size: int = 12 if compact_mode else 14
@@ -802,14 +831,128 @@ func _apply_responsive_layout(force: bool) -> void:
 		label.add_theme_font_size_override("font_size", info_font_size)
 	for label in [hp_label, stamina_label, shield_label]:
 		label.add_theme_font_size_override("font_size", small_font_size)
-	stats_label.add_theme_font_size_override("font_size", 14 if compact_mode else 16)
-	compass_label.add_theme_font_size_override("font_size", 14 if compact_mode else 16)
+	stats_label.add_theme_font_size_override("font_size", 13 if compact_mode else 14)
+	compass_label.add_theme_font_size_override("font_size", 13 if compact_mode else 14)
 	message_label.add_theme_font_size_override("font_size", info_font_size)
 
-	if compact_mode:
-		bottom_hud_background.offset_top = -278.0
-	else:
-		bottom_hud_background.offset_top = -254.0
+	_layout_peripheral_hud(viewport_size, compact_mode, controls_visible)
+
+func _controls_help_visible() -> bool:
+	return _help_pinned or _help_auto_hide_left > 0.0
+
+func _layout_peripheral_hud(viewport_size: Vector2, compact_mode: bool, controls_visible: bool) -> void:
+	var margin: float = 12.0 if compact_mode else 16.0
+	var row_h: float = 28.0 if compact_mode else 32.0
+	var top_gap: float = 6.0
+
+	top_atmosphere.visible = false
+	top_edge.visible = false
+	bottom_hud_background.visible = false
+	crosshair_halo.visible = false
+	world_strip_card.visible = _debug_overlay_visible
+	world_status_label.visible = _debug_overlay_visible
+	controls_card.visible = controls_visible
+	help_label.visible = controls_visible
+	movement_label.visible = controls_visible
+	target_status_card.visible = not target_status_label.text.is_empty()
+	target_status_label.visible = target_status_card.visible
+	interaction_strip_card.visible = not interaction_label.text.is_empty()
+	interaction_label.visible = interaction_strip_card.visible
+
+	var compass_w: float = min(viewport_size.x * 0.34, 460.0 if not compact_mode else 360.0)
+	var compass_x: float = viewport_size.x * 0.5 - compass_w * 0.5
+	_place_control(compass_card, compass_x, margin, compass_w, row_h)
+	_place_control(compass_label, compass_x + 12.0, margin + 3.0, compass_w - 24.0, row_h - 6.0)
+
+	var track_w: float = min(viewport_size.x * 0.44, 560.0 if not compact_mode else 430.0)
+	var track_x: float = viewport_size.x - margin - track_w
+	_place_control(objective_strip_card, track_x, margin, track_w, row_h)
+	_place_control(objective_label, track_x + 10.0, margin + 3.0, track_w - 20.0, row_h - 6.0)
+	_place_control(route_strip_card, track_x, margin + row_h + top_gap, track_w, row_h)
+	_place_control(route_label, track_x + 10.0, margin + row_h + top_gap + 3.0, track_w - 20.0, row_h - 6.0)
+	if world_strip_card.visible:
+		_place_control(world_strip_card, track_x, margin + (row_h + top_gap) * 2.0, track_w, row_h)
+		_place_control(world_status_label, track_x + 10.0, margin + (row_h + top_gap) * 2.0 + 3.0, track_w - 20.0, row_h - 6.0)
+
+	var message_w: float = min(viewport_size.x * 0.36, 480.0 if not compact_mode else 360.0)
+	_place_control(message_card, margin, margin, message_w, row_h)
+	_place_control(message_label, margin + 10.0, margin + 3.0, message_w - 20.0, row_h - 6.0)
+
+	var stats_w: float = 286.0 if not compact_mode else 242.0
+	var stats_h: float = 120.0 if not compact_mode else 106.0
+	var stats_x: float = margin
+	var stats_y: float = viewport_size.y - margin - stats_h
+	_place_control(stats_card, stats_x, stats_y, stats_w, stats_h)
+	_place_control(stats_label, stats_x + 10.0, stats_y + 8.0, stats_w - 20.0, 16.0)
+	_place_control(hp_label, stats_x + 10.0, stats_y + 30.0, 34.0, 16.0)
+	_place_control(hp_bar, stats_x + 48.0, stats_y + 29.0, stats_w - 58.0, 14.0)
+	_place_control(stamina_label, stats_x + 10.0, stats_y + 54.0, 34.0, 16.0)
+	_place_control(stamina_bar, stats_x + 48.0, stats_y + 53.0, stats_w - 58.0, 14.0)
+	_place_control(shield_label, stats_x + 10.0, stats_y + 78.0, 34.0, 16.0)
+	_place_control(shield_bar, stats_x + 48.0, stats_y + 77.0, stats_w - 58.0, 14.0)
+
+	var controls_w: float = min(viewport_size.x * 0.58, 760.0 if not compact_mode else 520.0)
+	var controls_h: float = 64.0 if not compact_mode else 56.0
+	var controls_x: float = viewport_size.x - margin - controls_w
+	var controls_y: float = viewport_size.y - margin - controls_h
+	if controls_visible:
+		_place_control(controls_card, controls_x, controls_y, controls_w, controls_h)
+		_place_control(help_label, controls_x + 10.0, controls_y + 7.0, controls_w - 20.0, 22.0)
+		_place_control(movement_label, controls_x + 10.0, controls_y + 31.0, controls_w - 20.0, 22.0)
+
+	var interaction_w: float = min(viewport_size.x * 0.44, 560.0 if not compact_mode else 430.0)
+	var interaction_h: float = 28.0
+	var interaction_x: float = viewport_size.x * 0.5 - interaction_w * 0.5
+	var interaction_y: float = viewport_size.y - margin - interaction_h
+	if controls_visible:
+		interaction_y -= controls_h + 8.0
+	_place_control(interaction_strip_card, interaction_x, interaction_y, interaction_w, interaction_h)
+	_place_control(interaction_label, interaction_x + 10.0, interaction_y + 3.0, interaction_w - 20.0, interaction_h - 6.0)
+
+	var target_w: float = min(viewport_size.x * 0.3, 380.0 if not compact_mode else 304.0)
+	var target_h: float = 28.0
+	var target_x: float = viewport_size.x - margin - target_w
+	var target_y: float = interaction_y - target_h - 8.0
+	_place_control(target_status_card, target_x, target_y, target_w, target_h)
+	_place_control(target_status_label, target_x + 10.0, target_y + 3.0, target_w - 20.0, target_h - 6.0)
+
+	var completion_w: float = min(viewport_size.x * 0.35, 460.0 if not compact_mode else 360.0)
+	var completion_h: float = 230.0 if not compact_mode else 190.0
+	var completion_x: float = viewport_size.x - margin - completion_w
+	var completion_y: float = margin + (row_h + top_gap) * 2.0 + 12.0
+	_place_control(completion_panel, completion_x, completion_y, completion_w, completion_h)
+
+	var debug_w: float = min(viewport_size.x * 0.34, 420.0)
+	var debug_h: float = min(viewport_size.y * 0.44, 340.0)
+	_place_control(debug_panel, margin, margin + row_h + top_gap + 8.0, debug_w, debug_h)
+
+	_place_control(crosshair, viewport_size.x * 0.5 - 8.0, viewport_size.y * 0.5 - 12.0, 16.0, 24.0)
+
+func _place_control(control: Control, left: float, top: float, width: float, height: float) -> void:
+	if control == null:
+		return
+	control.anchor_left = 0.0
+	control.anchor_top = 0.0
+	control.anchor_right = 0.0
+	control.anchor_bottom = 0.0
+	control.offset_left = left
+	control.offset_top = top
+	control.offset_right = left + width
+	control.offset_bottom = top + height
+
+func _compact_route_text(text: String) -> String:
+	var trimmed: String = text.strip_edges()
+	if trimmed.begins_with("Route:"):
+		trimmed = trimmed.substr(6).strip_edges()
+	trimmed = trimmed.replace("Open Crafting (C) and ", "Crafting (C): ")
+	trimmed = trimmed.replace("Moonblade (Prototype)", "Moonblade")
+	trimmed = trimmed.replace("Greegion Miner Bot", "Miner Bot")
+	return _trim_text(trimmed, 84)
+
+func _trim_text(text: String, max_chars: int) -> String:
+	if text.length() <= max_chars:
+		return text
+	return text.substr(0, max_chars - 3).strip_edges() + "..."
 
 func _join_parts(parts: Array[String], separator: String) -> String:
 	if parts.is_empty():
@@ -932,7 +1075,7 @@ func _show_completion_panel() -> void:
 	if completion_panel == null:
 		return
 	completion_summary.text = _build_completion_summary()
-	completion_meta.text = "Debrief auto-closes in 12s. Reopen objective checklist with O."
+	completion_meta.text = "Debrief auto-closes in 12s. Press O to reopen objectives."
 	completion_panel.visible = true
 	_completion_panel_time_left = 12.0
 

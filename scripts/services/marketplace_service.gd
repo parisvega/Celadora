@@ -6,6 +6,7 @@ signal transaction_completed(result: Dictionary)
 var _inventory_service: Node = null
 var _data_service: Node = null
 var _network_service: Node = null
+var _authority_service: Node = null
 var _listings: Array = []
 var _next_listing_id: int = 1
 
@@ -15,19 +16,38 @@ func setup(inventory_service: Node, data_service: Node, network_service: Node) -
 	_network_service = network_service
 	_seed_default_listings()
 
+func set_authority_service(authority_service: Node) -> void:
+	_authority_service = authority_service
+
 func listings() -> Array:
 	return _listings.duplicate(true)
 
 func refresh() -> Array:
+	if _authority_service != null and _authority_service.has_method("refresh_market"):
+		var result: Dictionary = _authority_service.refresh_market()
+		if not result.get("ok", false):
+			transaction_completed.emit(result)
+		return listings()
+
 	var response: Dictionary = _network_service.fetch_market_listings()
 	if response.get("ok", false):
-		var payload = response.get("data", [])
-		if typeof(payload) == TYPE_ARRAY and payload.size() > 0:
-			_listings = payload.duplicate(true)
+		var payload: Variant = response.get("data", [])
+		if typeof(payload) == TYPE_DICTIONARY:
+			var listings_payload: Variant = (payload as Dictionary).get("listings", [])
+			if typeof(listings_payload) == TYPE_ARRAY:
+				_listings = (listings_payload as Array).duplicate(true)
+				listings_updated.emit()
+		elif typeof(payload) == TYPE_ARRAY and (payload as Array).size() > 0:
+			_listings = (payload as Array).duplicate(true)
 			listings_updated.emit()
 	return listings()
 
 func buy(listing_id: String, quantity: int) -> Dictionary:
+	if _authority_service != null and _authority_service.has_method("buy_listing"):
+		var authority_result: Dictionary = _authority_service.buy_listing(listing_id, quantity)
+		transaction_completed.emit(authority_result)
+		return authority_result
+
 	if quantity <= 0:
 		return _fail("Quantity must be at least 1.")
 
@@ -74,6 +94,11 @@ func buy(listing_id: String, quantity: int) -> Dictionary:
 	return _fail("Listing not found.")
 
 func sell(item_id: String, quantity: int, unit_price: int) -> Dictionary:
+	if _authority_service != null and _authority_service.has_method("sell_item"):
+		var authority_result: Dictionary = _authority_service.sell_item(item_id, quantity, unit_price)
+		transaction_completed.emit(authority_result)
+		return authority_result
+
 	if quantity <= 0:
 		return _fail("Quantity must be at least 1.")
 	if unit_price <= 0:
@@ -122,6 +147,13 @@ func load_state(state: Dictionary) -> void:
 		_seed_default_listings()
 	else:
 		listings_updated.emit()
+
+func apply_authoritative_state(state: Dictionary) -> void:
+	if typeof(state) != TYPE_DICTIONARY:
+		return
+	_listings = state.get("listings", []).duplicate(true)
+	_next_listing_id = max(1, int(state.get("next_listing_id", 1)))
+	listings_updated.emit()
 
 func _seed_default_listings() -> void:
 	if not _listings.is_empty():

@@ -15,7 +15,10 @@
 - `SaveService`: local JSON persistence (`user://savegame_v01.json`).
 - `LoreJournalService`: unlock tracking for location-based lore entries.
 - `MarketplaceService`: local listing simulation with provider seam for server authority.
-- `NetworkService` + `LocalNetworkService`: future MMO/Nakama insertion point.
+- `AuthorityService`: merges local save/runtime state with authoritative snapshots and routes reward/crafting/market mutations.
+- `NetworkService`: stable transport contract for authority calls.
+- `LocalNetworkService`: in-process authoritative implementation used by default.
+- `HttpNetworkService`: optional desktop transport for a local/external authority process.
 - `GameServices.world_state`: lightweight persistent world flags (for example `ruins_terminal_primed`).
 
 ## Core Controllers
@@ -45,10 +48,26 @@ Moon dust runtime identity is also data-driven via `items[].dust_profile`:
 - `glow_strength` controls emissive intensity from no glow to fully luminous.
 
 ## MMO Expansion Seams
-- Replace `LocalNetworkService` with a Nakama-backed implementation while preserving service signatures.
-- Move marketplace settlement, inventory mutation, and combat event validation server-side.
+- Replace `HttpNetworkService` endpoint targets with Nakama-backed RPC/storage calls while preserving service signatures.
+- Keep `AuthorityService` as the single gameplay seam for reward claims, crafting requests, market orders, and state synchronization.
+- Move resource-claim validation, enemy state, and combat resolution server-side in later slices.
 - Keep client as prediction/presentation layer while authority transitions to backend.
 - Use `NetworkService.wrap_client_event(...)` envelopes as stable client-event contracts when routing through authoritative RPC pipelines.
+
+## Authority Slice (Current)
+- Authoritative today:
+  - inventory mutations
+  - Celador Credit settlement
+  - crafting consumption/outputs
+  - marketplace buy/sell settlement
+- Not authoritative yet:
+  - terrain/resource existence
+  - enemy simulation and HP
+  - movement/position validation
+  - combat hit verification
+- Optional server process:
+  - `scripts/server/authority_server.mjs`
+  - persisted local state: `artifacts/authority/state.local.json`
 
 ## Economy Safety Boundary
 - `scripts/economy/token_bridge.gd` defines a disabled interface only.

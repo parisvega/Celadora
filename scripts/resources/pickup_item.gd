@@ -66,10 +66,29 @@ func collect() -> void:
 	if _collected:
 		return
 	_collected = true
-	if item_id != "":
-		GameServices.inventory_service.add_item(item_id, max(quantity, 1))
-	if credits > 0:
-		GameServices.inventory_service.add_credits(credits)
+	var claim_result: Dictionary = {"ok": true}
+	if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
+		claim_result = GameServices.authority_service.claim_reward(
+			item_id,
+			max(quantity, 1) if item_id != "" else 0,
+			max(credits, 0),
+			"pickup.collect",
+			{
+				"pickup_position": [global_position.x, global_position.y, global_position.z]
+			}
+		)
+	else:
+		if item_id != "":
+			GameServices.inventory_service.add_item(item_id, max(quantity, 1))
+		if credits > 0:
+			GameServices.inventory_service.add_credits(credits)
+
+	if not claim_result.get("ok", false):
+		_collected = false
+		var hud_error = get_tree().get_first_node_in_group("hud")
+		if hud_error:
+			hud_error.push_message(str(claim_result.get("reason", "Pickup claim failed.")))
+		return
 
 	var item_name: String = item_id
 	var item_def: Dictionary = GameServices.data_service.get_item(item_id)

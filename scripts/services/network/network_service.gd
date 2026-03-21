@@ -17,6 +17,12 @@ func submit_market_order(_order: Dictionary) -> Dictionary:
 func submit_combat_event(_event_payload: Dictionary) -> Dictionary:
 	return _not_implemented("submit_combat_event")
 
+func submit_reward_claim(_claim: Dictionary) -> Dictionary:
+	return _not_implemented("submit_reward_claim")
+
+func submit_craft_request(_request: Dictionary) -> Dictionary:
+	return _not_implemented("submit_craft_request")
+
 func wrap_client_event(event_type: String, payload: Dictionary, context: Dictionary = {}) -> Dictionary:
 	_event_sequence += 1
 	return {

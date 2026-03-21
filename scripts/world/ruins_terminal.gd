@@ -67,7 +67,9 @@ func interact(_player: Node) -> Dictionary:
 		"flag_id": world_flag_id,
 		"required_item_id": required_item_id
 	})
-	if GameServices.inventory_service != null:
+	if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
+		GameServices.authority_service.claim_reward("", 0, 25, "ruins.terminal_primed")
+	elif GameServices.inventory_service != null:
 		GameServices.inventory_service.add_credits(25)
 	if hud:
 		hud.push_message(primed_message)

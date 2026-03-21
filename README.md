@@ -17,6 +17,20 @@ Celadora is an open-source sci-fi fantasy RPG prototype built in Godot 4.3. This
 2. Add your target preset (Windows/macOS/Linux).
 3. Export using default settings (no external binary dependency required for v0.1).
 
+## Optional Authority Mode
+Celadora still runs fully offline by default, but inventory/credits/crafting/marketplace can now be exercised through an optional local authority server.
+
+1. Start the local authority server in a normal terminal:
+   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/run_authority_server.sh 8787`
+2. Launch Godot from the same terminal with:
+   - `CELADORA_AUTHORITY_URL=http://127.0.0.1:8787 godot4 --path '/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora'`
+3. Stop the authority server when done:
+   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/stop_authority_server.sh`
+
+Authority scope in this slice:
+- authoritative now: inventory, Celador Credits, crafting outputs, market settlement
+- still client-simulated: world terrain/resources, enemy simulation, combat hit validation, movement
+
 ## Controls
 - `W/A/S/D`: Move
 - `Shift`: Run
@@ -33,19 +47,20 @@ Celadora is an open-source sci-fi fantasy RPG prototype built in Godot 4.3. This
 - `F8`: Skip day/night phase (dev/test convenience)
 - `F9`: Reset local progress (save + inventory + lore + market state)
 - `F3`: Toggle debug overlay (FPS/position/biome/objective/dream status)
+- `F1`: Pin/unpin HUD controls help card
 - `Esc`: Toggle mouse capture
 
 HUD notes:
-- Top row: compass and marker bearings
-- Bottom row 1: dynamic route guidance for the next incomplete objective
-- Bottom row 2: current objective progression
-- Bottom row 3: world status (day/night, biome, Dream Keeper window, next lore marker direction/distance)
-- Bottom row 4: contextual interaction hint (mine/attack/interact target)
-- Center status line: current target integrity/HP
+- HUD is now peripheral-first to keep the center view clear during exploration/combat.
+- Top center: compact compass + nearest lore marker direction/distance.
+- Top right: objective state and route guidance.
+- Top left: transient system message toast.
+- Bottom left: vitals bars + credits.
+- Bottom center: contextual interaction hint (only shown when relevant).
+- Bottom right: target status card + optional controls help card (`F1`).
 - First-person viewmodel: arms, hands, and active tool are visible; crafted `Moonblade (Prototype)` auto-equips visually
-- Completion debrief panel appears automatically when all v0.1 objectives are done, with run summary stats
-- Bottom row 5: system controls (inventory/crafting/lore/market/interact/save/reset)
-- Bottom row 6: movement controls
+- Completion debrief panel appears at the right side when all v0.1 objectives are done, with run summary stats
+- Controls help card auto-hides shortly after spawn; pin it with `F1` when needed
 - Hit feedback: lightweight red flash when taking damage
 
 ## Gameplay Loop in v0.1
@@ -145,8 +160,9 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 
 ## Architecture Summary
 - Autoload singleton: `GameServices`
-- Modular services: inventory, crafting, save, lore, marketplace, network stub.
-- Provider seam: `NetworkService` interface + `LocalNetworkService` implementation.
+- Modular services: inventory, crafting, save, lore, marketplace, authority, network.
+- Provider seam: `NetworkService` interface + `LocalNetworkService` / `HttpNetworkService` implementations.
+- `AuthorityService` now owns the handoff between local runtime state and authoritative inventory/credits/marketplace mutation flows.
 - Persistent world progression seam: `GameServices.world_state` (used by ruins-terminal state and future world flags).
 - Economy isolation: disabled `TokenBridge` stubs in `/scripts/economy`.
 
@@ -161,6 +177,10 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/stop_web_preview.sh`
 - Run smoke checks:
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/smoke_check.sh`
+- Run local authority HTTP smoke:
+  - `node /Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/server/authority_smoke.mjs`
+- Start the optional local authority server directly with Node:
+  - `node /Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/server/authority_server.mjs`
 - Run automated QA agent (headless + report files):
   - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/qa/run_qa_agent.sh`
   - Outputs:
@@ -190,16 +210,16 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 
 ## Next Milestones
 1. **Dedicated server foundation**
-   - Move simulation authority for inventory/combat/economy to a backend process.
+   - Expand the new authority slice from economy/inventory into combat rewards, resource claims, and player session state.
 2. **Nakama integration**
-   - Implement `NetworkService` methods against Nakama RPC/storage APIs.
-   - Add session/auth bootstrap and matchmaking hooks.
+   - Replace `HttpNetworkService` endpoint targets with Nakama RPC/storage APIs.
+   - Add session/auth bootstrap, account identity, and matchmaking hooks.
 3. **MMO shard/instance strategy**
    - Hybrid model: region shards + instanced high-load zones.
    - Cross-shard travel services and state handoff.
 4. **Authoritative economy + anti-cheat**
-   - Server-side validation for resource drops, trades, and crafting outputs.
-   - Event audit logs, anomaly detection, anti-duplication protections.
+   - Server-side validation for resource existence, drop claims, trades, and crafting outputs.
+   - Event audit logs, anomaly detection, anti-duplication protections, and transaction reconciliation.
 5. **Content roadmap**
    - Eight-moon travel loop.
    - Moon Sword questline progression.

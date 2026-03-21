@@ -89,20 +89,20 @@ func _run_web_objective_flow_qa() -> void:
 	report["viewmodel"] = viewmodel_status
 	_append_qa_step(report, "viewmodel_visible", bool(viewmodel_status.get("ok", false)), viewmodel_status)
 
-	GameServices.inventory_service.add_item("dust_blue", 1)
+	_grant_qa_reward("dust_blue", 1)
 	_mark_objective_complete_if_ready("collect_dust")
 	_append_qa_step(report, "collect_dust", _is_objective_complete("collect_dust"), {"added": "dust_blue"})
 
-	GameServices.inventory_service.add_item("energy_crystal", 1)
+	_grant_qa_reward("energy_crystal", 1)
 	_mark_objective_complete_if_ready("collect_energy")
 	_append_qa_step(report, "collect_energy", _is_objective_complete("collect_energy"), {"added": "energy_crystal"})
 
-	GameServices.inventory_service.add_item("bot_scrap", 1)
+	_grant_qa_reward("bot_scrap", 1)
 	_mark_objective_complete_if_ready("salvage_bot")
 	_append_qa_step(report, "salvage_bot", _is_objective_complete("salvage_bot"), {"added": "bot_scrap"})
 
-	GameServices.inventory_service.add_item("dust_green", 1)
-	GameServices.inventory_service.add_item("energy_crystal", 2)
+	_grant_qa_reward("dust_green", 1)
+	_grant_qa_reward("energy_crystal", 2)
 	var alloy_result: Dictionary = GameServices.crafting_service.craft("alloy_recipe")
 	_mark_objective_complete_if_ready("forge_alloy")
 	_append_qa_step(report, "forge_alloy", _is_objective_complete("forge_alloy"), alloy_result)
@@ -114,11 +114,11 @@ func _run_web_objective_flow_qa() -> void:
 		"unlocked_count": GameServices.lore_journal_service.get_unlocked_ids().size()
 	})
 
-	GameServices.inventory_service.add_item("dream_seed", 1)
+	_grant_qa_reward("dream_seed", 1)
 	_mark_objective_complete_if_ready("acquire_dream_seed")
 	_append_qa_step(report, "acquire_dream_seed", _is_objective_complete("acquire_dream_seed"), {"added": "dream_seed"})
 
-	GameServices.inventory_service.add_item("energy_crystal", 1)
+	_grant_qa_reward("energy_crystal", 1)
 	var moonblade_result: Dictionary = GameServices.crafting_service.craft("moonblade_recipe")
 	_mark_objective_complete_if_ready("craft_moonblade")
 	_append_qa_step(report, "craft_moonblade", _is_objective_complete("craft_moonblade"), moonblade_result)
@@ -216,9 +216,17 @@ func _reset_runtime_state_for_qa() -> void:
 	GameServices.lore_journal_service.set_unlocked_ids([])
 	GameServices.marketplace_service.load_state({})
 	GameServices.set_world_state({})
+	if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
+		GameServices.authority_service.sync_state(GameServices.save_service.normalize_state_for_load({}), true)
 	player.global_position = Vector3(0.0, 8.0, 0.0)
 	player.set_spawn_position(player.global_position)
 	_ensure_safe_spawn()
+
+func _grant_qa_reward(item_id: String, quantity: int) -> void:
+	if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
+		GameServices.authority_service.claim_reward(item_id, quantity, 0, "qa.objective_flow")
+		return
+	GameServices.inventory_service.add_item(item_id, quantity)
 
 func _append_qa_step(report: Dictionary, step_id: String, ok: bool, details: Dictionary = {}) -> void:
 	var steps: Array = report.get("steps", [])

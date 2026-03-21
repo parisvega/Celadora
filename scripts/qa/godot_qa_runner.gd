@@ -171,6 +171,8 @@ func _run_checks() -> void:
 	var ruins_terminal_starts_locked: bool = false
 	var ruins_terminal_can_be_primed: bool = false
 	var save_load_world_flag_roundtrip: bool = false
+	var ruins_terminal_details: Dictionary = {}
+	var save_roundtrip_details: Dictionary = {}
 	var save_legacy_migration_ok: bool = false
 	if data_service != null:
 		var required_items := [
@@ -298,8 +300,13 @@ func _run_checks() -> void:
 			ruins_terminal_starts_locked = str(terminal_status.get("state", "")) == "locked"
 
 			if inventory_service != null and lore_service != null:
-				inventory_service.add_item("moonblade_prototype", 1)
-				inventory_service.add_item("dream_seed", 1)
+				var authority_service: Node = game_services.get("authority_service")
+				if authority_service != null and authority_service.has_method("is_authority_connected") and authority_service.is_authority_connected():
+					authority_service.claim_reward("moonblade_prototype", 1, 0, "qa.ruins_terminal")
+					authority_service.claim_reward("dream_seed", 1, 0, "qa.ruins_terminal")
+				else:
+					inventory_service.add_item("moonblade_prototype", 1)
+					inventory_service.add_item("dream_seed", 1)
 				lore_service.set_unlocked_ids([
 					"enoks_kingdom_ridge",
 					"makunas_shore",
@@ -308,6 +315,14 @@ func _run_checks() -> void:
 				var interact_result: Dictionary = ruins_terminal.interact(player)
 				var primed_status: Dictionary = ruins_terminal.get_interaction_status()
 				var world_flag_primed: bool = bool(game_services.call("get_world_flag", "ruins_terminal_primed", false))
+				ruins_terminal_details = {
+					"interact_result": interact_result,
+					"primed_status": primed_status,
+					"world_flag_primed": world_flag_primed,
+					"moonblade_qty": inventory_service.get_quantity("moonblade_prototype"),
+					"dream_seed_qty": inventory_service.get_quantity("dream_seed"),
+					"lore_count": lore_service.get_unlocked_ids().size()
+				}
 				ruins_terminal_can_be_primed = bool(interact_result.get("ok", false)) and str(primed_status.get("state", "")) == "primed" and world_flag_primed
 
 				if save_service != null and ruins_terminal_can_be_primed:
@@ -318,6 +333,11 @@ func _run_checks() -> void:
 					game_services.call("set_world_flag", "ruins_terminal_primed", false)
 					save_service.load_game()
 					var reloaded_flag: bool = bool(game_services.call("get_world_flag", "ruins_terminal_primed", false))
+					save_roundtrip_details = {
+						"write_ok": write_ok,
+						"saved_flag": saved_flag,
+						"reloaded_flag": reloaded_flag
+					}
 					save_load_world_flag_roundtrip = write_ok and saved_flag and reloaded_flag
 		if save_service != null and save_service.has_method("normalize_state_for_load"):
 			var legacy_state: Dictionary = {
@@ -354,8 +374,8 @@ func _run_checks() -> void:
 	_add_check("dust_shape_library_builds", dust_shape_library_ok, {}, "critical")
 	_add_check("ruins_terminal_present", ruins_terminal_present, {}, "critical")
 	_add_check("ruins_terminal_starts_locked", ruins_terminal_starts_locked, {}, "critical")
-	_add_check("ruins_terminal_can_be_primed", ruins_terminal_can_be_primed, {}, "critical")
-	_add_check("save_load_world_flag_roundtrip", save_load_world_flag_roundtrip, {}, "critical")
+	_add_check("ruins_terminal_can_be_primed", ruins_terminal_can_be_primed, ruins_terminal_details, "critical")
+	_add_check("save_load_world_flag_roundtrip", save_load_world_flag_roundtrip, save_roundtrip_details, "critical")
 	_add_check("save_legacy_migration", save_legacy_migration_ok, {}, "critical")
 
 	main.queue_free()

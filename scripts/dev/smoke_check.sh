@@ -99,11 +99,17 @@ required=(
   assets/shaders/celadora_skydome.gdshader
   scripts/resources/dust_shape_library.gd
   scripts/services/game_services.gd
+  scripts/services/authority_service.gd
   scripts/services/event_log_service.gd
+  scripts/services/network/http_network_service.gd
+  scripts/services/network/local_network_service.gd
+  scripts/services/network/network_service.gd
   scripts/controllers/player_controller.gd
   scripts/controllers/viewmodel_controller.gd
   scripts/controllers/enemy_controller.gd
   scripts/world/world_visuals.gd
+  scripts/server/authority_server.mjs
+  scripts/server/authority_smoke.mjs
   docs/realism_stack.md
 )
 for f in "${required[@]}"; do

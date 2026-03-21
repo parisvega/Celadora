@@ -47,22 +47,7 @@ func load_game() -> Dictionary:
 	return loaded_state
 
 func save_game(player_state: Dictionary) -> bool:
-	var world_state_snapshot: Dictionary = {}
-	if _world_state_provider != null and _world_state_provider.has_method("get_world_state"):
-		world_state_snapshot = _world_state_provider.get_world_state()
-	var save_state_raw: Dictionary = {
-		"schema_version": SAVE_SCHEMA_VERSION,
-		"version": SAVE_LABEL_VERSION,
-		"timestamp": Time.get_datetime_string_from_system(),
-		"player_state": player_state,
-		"inventory": _inventory_service.get_all_items(),
-		"credits": _inventory_service.credits,
-		"unlocked_lore": _lore_service.get_unlocked_ids(),
-		"marketplace": _marketplace_service.serialize_state(),
-		"world_state": world_state_snapshot,
-		"event_log": _event_log_service.serialize_state() if _event_log_service != null else []
-	}
-	var state_to_write: Dictionary = normalize_state_for_load(save_state_raw)
+	var state_to_write: Dictionary = build_state_snapshot(player_state)
 
 	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -79,6 +64,24 @@ func save_game(player_state: Dictionary) -> bool:
 		})
 	save_written.emit(SAVE_PATH)
 	return true
+
+func build_state_snapshot(player_state: Dictionary) -> Dictionary:
+	var world_state_snapshot: Dictionary = {}
+	if _world_state_provider != null and _world_state_provider.has_method("get_world_state"):
+		world_state_snapshot = _world_state_provider.get_world_state()
+	var save_state_raw: Dictionary = {
+		"schema_version": SAVE_SCHEMA_VERSION,
+		"version": SAVE_LABEL_VERSION,
+		"timestamp": Time.get_datetime_string_from_system(),
+		"player_state": player_state,
+		"inventory": _inventory_service.get_all_items(),
+		"credits": _inventory_service.credits,
+		"unlocked_lore": _lore_service.get_unlocked_ids(),
+		"marketplace": _marketplace_service.serialize_state(),
+		"world_state": world_state_snapshot,
+		"event_log": _event_log_service.serialize_state() if _event_log_service != null else []
+	}
+	return normalize_state_for_load(save_state_raw)
 
 func normalize_state_for_load(raw_state: Dictionary) -> Dictionary:
 	var normalized: Dictionary = _default_state()
@@ -110,6 +113,12 @@ func normalize_state_for_load(raw_state: Dictionary) -> Dictionary:
 
 func get_loaded_state() -> Dictionary:
 	return loaded_state.duplicate(true)
+
+func replace_loaded_state(state: Dictionary, apply_runtime: bool = false) -> void:
+	loaded_state = normalize_state_for_load(state)
+	if apply_runtime:
+		_apply_loaded_state(loaded_state)
+		save_loaded.emit(loaded_state)
 
 func delete_save_file() -> bool:
 	loaded_state = _default_state()

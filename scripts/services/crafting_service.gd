@@ -4,10 +4,14 @@ signal crafted(recipe_id: String, outputs: Dictionary)
 
 var _data_service: Node = null
 var _inventory_service: Node = null
+var _authority_service: Node = null
 
 func setup(data_service: Node, inventory_service: Node) -> void:
 	_data_service = data_service
 	_inventory_service = inventory_service
+
+func set_authority_service(authority_service: Node) -> void:
+	_authority_service = authority_service
 
 func can_craft(recipe_id: String) -> Dictionary:
 	var recipe: Dictionary = _data_service.get_recipe(recipe_id)
@@ -33,6 +37,12 @@ func can_craft(recipe_id: String) -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 func craft(recipe_id: String) -> Dictionary:
+	if _authority_service != null and _authority_service.has_method("craft_recipe"):
+		var authoritative_result: Dictionary = _authority_service.craft_recipe(recipe_id)
+		if authoritative_result.get("ok", false):
+			crafted.emit(recipe_id, authoritative_result.get("outputs", {}).duplicate(true))
+		return authoritative_result
+
 	var validation: Dictionary = can_craft(recipe_id)
 	if not validation.get("ok", false):
 		return validation

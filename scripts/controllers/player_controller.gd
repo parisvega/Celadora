@@ -252,15 +252,8 @@ func _resolve_mine_action(target: Object, payload: Dictionary) -> void:
 	var item_id = str(result.get("item_id", ""))
 	var quantity = int(result.get("quantity", 1))
 	var credits_reward = int(result.get("credits", 0))
-	if item_id != "":
-		var item_def: Dictionary = GameServices.get_item_def(item_id)
-		var tags: Array = item_def.get("tags", [])
-		if tags.has("dust"):
-			_spawn_mined_dust_pickup(item_id, quantity, _drop_position_from_target(target))
-		else:
-			GameServices.inventory_service.add_item(item_id, quantity)
-	if credits_reward > 0:
-		GameServices.inventory_service.add_credits(credits_reward)
+	if item_id != "" or credits_reward > 0:
+		_spawn_reward_pickup(item_id, quantity, credits_reward, _drop_position_from_target(target))
 
 	GameServices.log_event("mining.node_mined", {
 		"item_id": item_id,
@@ -537,9 +530,15 @@ func _drop_position_from_target(target: Object) -> Vector3:
 		return target_node.global_position + Vector3(0.0, 0.5, 0.0)
 	return global_position + (-camera.global_transform.basis.z * 1.0) + Vector3(0.0, 1.1, 0.0)
 
-func _spawn_mined_dust_pickup(item_id: String, quantity: int, position_hint: Vector3) -> void:
+func _spawn_reward_pickup(item_id: String, quantity: int, credits_reward: int, position_hint: Vector3) -> void:
 	if PickupItemScene == null:
-		GameServices.inventory_service.add_item(item_id, quantity)
+		if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
+			GameServices.authority_service.claim_reward(item_id, quantity, credits_reward, "pickup.spawn_fallback")
+		else:
+			if item_id != "":
+				GameServices.inventory_service.add_item(item_id, quantity)
+			if credits_reward > 0:
+				GameServices.inventory_service.add_credits(credits_reward)
 		return
 	var pickup = PickupItemScene.instantiate()
 	var parent_node: Node = get_tree().current_scene if get_tree().current_scene != null else get_parent()
@@ -547,7 +546,7 @@ func _spawn_mined_dust_pickup(item_id: String, quantity: int, position_hint: Vec
 	pickup.global_position = position_hint
 	pickup.item_id = item_id
 	pickup.quantity = max(quantity, 1)
-	pickup.credits = 0
+	pickup.credits = max(credits_reward, 0)
 
 	var dust_profile: Dictionary = GameServices.data_service.get_dust_profile(item_id)
 	if pickup.has_method("apply_dust_profile") and not dust_profile.is_empty():

@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qa:browser:objective": "node scripts/qa/browser_objective_flow_qa.mjs"
+    "qa:browser:objective": "node scripts/qa/browser_objective_flow_qa.mjs",
+    "authority:start": "node scripts/server/authority_server.mjs",
+    "authority:smoke": "node scripts/server/authority_smoke.mjs"
   },
   "devDependencies": {
     "playwright": "1.58.2"
