@@ -3,6 +3,7 @@ extends StaticBody3D
 const DustShapeLibrary = preload("res://scripts/resources/dust_shape_library.gd")
 
 @export var item_id: String = "dust_blue"
+@export var resource_id: String = ""
 @export var yield_quantity: int = 1
 @export var durability: float = 2.5
 @export var credit_reward: int = 3
@@ -14,25 +15,56 @@ var _current_durability: float = 0.0
 var _glow_strength: float = 0.0
 var _base_color: Color = Color(0.8, 0.8, 0.8)
 var _shape_id: String = "orb"
+var _claim_pending: bool = false
 
 func _ready() -> void:
+	if not resource_id.is_empty() and GameServices.get_world_flag(_world_flag_id(), false):
+		queue_free()
+		return
 	add_to_group("resource_node")
 	_current_durability = durability
 	_apply_visual()
 
 func mine(power: float = 1.0) -> Dictionary:
+	if _claim_pending:
+		return {"mined": false, "pending_authority": true}
 	_current_durability -= max(power, 0.2)
 	_flash_feedback()
 	if _current_durability <= 0.0:
-		var result = {
+		_current_durability = 0.0
+		_claim_pending = true
+		return {
 			"mined": true,
-			"item_id": item_id,
-			"quantity": max(1, yield_quantity),
-			"credits": max(0, credit_reward)
+			"claim_ready": true,
+			"resource_id": resource_id,
+			"world_flag_id": _world_flag_id()
 		}
-		queue_free()
-		return result
 	return {"mined": false}
+
+func get_authority_resource_payload() -> Dictionary:
+	return {
+		"resource_id": resource_id,
+		"item_id": item_id,
+		"quantity": max(1, yield_quantity),
+		"credits": max(0, credit_reward),
+		"position": [global_position.x, global_position.y, global_position.z]
+	}
+
+func consume_authorized_mine() -> void:
+	_claim_pending = false
+	if not resource_id.is_empty():
+		GameServices.set_world_flag(_world_flag_id(), true)
+	queue_free()
+
+func restore_after_claim_failure() -> void:
+	_claim_pending = false
+	_current_durability = max(durability * 0.2, 0.25)
+
+func mark_remote_mined() -> void:
+	_claim_pending = false
+	if not resource_id.is_empty():
+		GameServices.set_world_flag(_world_flag_id(), true)
+	queue_free()
 
 func get_interaction_status() -> Dictionary:
 	var item_def: Dictionary = GameServices.get_item_def(item_id)
@@ -110,3 +142,6 @@ func _sync_glow_light() -> void:
 	glow_light.light_energy = lerpf(0.6, 4.2, _glow_strength)
 	glow_light.omni_range = lerpf(1.6, 4.2, _glow_strength)
 	glow_light.position = Vector3(0.0, 0.2, 0.0)
+
+func _world_flag_id() -> String:
+	return "resource_mined:%s" % resource_id

@@ -28,7 +28,7 @@ Celadora still runs fully offline by default, but inventory/credits/crafting/mar
    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/stop_authority_server.sh`
 
 Authority scope in this slice:
-- authoritative now: inventory, Celador Credits, crafting outputs, market settlement
+- authoritative now: inventory, Celador Credits, crafting outputs, market settlement, resource reward reservation/duplicate prevention
 - still client-simulated: world terrain/resources, enemy simulation, combat hit validation, movement
 
 ## Optional Nakama Provider
@@ -52,12 +52,14 @@ Nakama scope today:
 - mirrors the current authority slice for:
   - connect/bootstrap
   - state sync
+  - resource catalog sync
+  - resource mining approval
   - reward claims
   - crafting
   - marketplace settlement
   - combat event logging
 - remains optional and is not required for v0.1 runtime
-- does not yet include matchmaking, shard orchestration, resource-node authority, or server-side combat resolution
+- does not yet include matchmaking, shard orchestration, enemy/server combat resolution, or movement/session validation
 
 ## Controls
 - `W/A/S/D`: Move
@@ -191,6 +193,7 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 - Modular services: inventory, crafting, save, lore, marketplace, authority, network.
 - Provider seam: `NetworkService` interface + `LocalNetworkService` / `HttpNetworkService` implementations.
 - `AuthorityService` now owns the handoff between local runtime state and authoritative inventory/credits/marketplace mutation flows.
+- Resource mining now syncs a canonical resource catalog into the authority layer, and depleted nodes must be approved there before rewards are granted.
 - Reward claims now carry claim IDs so pickup settlement can be rejected when the same drop is claimed twice.
 - Persistent world progression seam: `GameServices.world_state` (used by ruins-terminal state and future world flags).
 - Economy isolation: disabled `TokenBridge` stubs in `/scripts/economy`.
@@ -241,7 +244,7 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 
 ## Next Milestones
 1. **Dedicated server foundation**
-   - Expand the new authority slice from economy/inventory into combat rewards, resource claims, and player session state.
+   - Expand the authority slice from inventory/resources into enemy state, combat rewards, and player session state.
 2. **Nakama integration**
    - Replace `HttpNetworkService` endpoint targets with Nakama RPC/storage APIs.
    - Add session/auth bootstrap, account identity, and matchmaking hooks.

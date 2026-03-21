@@ -248,6 +248,9 @@ func _resolve_mine_action(target: Object, payload: Dictionary) -> void:
 	var result: Dictionary = target.mine(mine_power)
 	if not result.get("mined", false):
 		return
+	if result.get("claim_ready", false):
+		_resolve_authorized_resource_mine(target, result)
+		return
 
 	var item_id = str(result.get("item_id", ""))
 	var quantity = int(result.get("quantity", 1))
@@ -257,6 +260,62 @@ func _resolve_mine_action(target: Object, payload: Dictionary) -> void:
 		_spawn_reward_pickup(item_id, quantity, credits_reward, _drop_position_from_target(target), claim_source)
 
 	GameServices.log_event("mining.node_mined", {
+		"item_id": item_id,
+		"quantity": quantity,
+		"credits": credits_reward,
+		"position": [global_position.x, global_position.y, global_position.z]
+	})
+
+func _resolve_authorized_resource_mine(target: Object, result: Dictionary) -> void:
+	if GameServices.authority_service == null or not GameServices.authority_service.has_method("mine_resource"):
+		if target.has_method("restore_after_claim_failure"):
+			target.restore_after_claim_failure()
+		return
+	if not target.has_method("get_authority_resource_payload"):
+		if target.has_method("restore_after_claim_failure"):
+			target.restore_after_claim_failure()
+		return
+	var authority_result: Dictionary = GameServices.authority_service.mine_resource(target.get_authority_resource_payload())
+	if not authority_result.get("ok", false):
+		var reason: String = str(authority_result.get("reason", "Mining claim failed."))
+		if reason.to_lower().contains("already mined"):
+			if target.has_method("mark_remote_mined"):
+				target.mark_remote_mined()
+			return
+		if target.has_method("restore_after_claim_failure"):
+			target.restore_after_claim_failure()
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud:
+			hud.push_message(reason)
+		return
+
+	var item_id: String = str(authority_result.get("item_id", ""))
+	var quantity: int = int(authority_result.get("quantity", 1))
+	var credits_reward: int = int(authority_result.get("credits", 0))
+	var claim_id: String = str(authority_result.get("claim_id", "")).strip_edges()
+	var resource_id: String = str(authority_result.get("resource_id", result.get("resource_id", ""))).strip_edges()
+	var claim_source: String = "resource:%s" % resource_id
+	var reward_result: Dictionary = GameServices.authority_service.claim_reward("", 0, 0, claim_source, {
+		"claim_id": claim_id,
+		"claim_source": claim_source
+	})
+	if not reward_result.get("ok", false):
+		if target.has_method("mark_remote_mined"):
+			target.mark_remote_mined()
+		var hud_failure = get_tree().get_first_node_in_group("hud")
+		if hud_failure:
+			hud_failure.push_message(str(reward_result.get("reason", "Resource settlement failed.")))
+		return
+	if target.has_method("consume_authorized_mine"):
+		target.consume_authorized_mine()
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and (item_id != "" or credits_reward > 0):
+		var message: String = "Recovered %s x%d" % [item_id if not item_id.is_empty() else "credits", max(quantity, 1)]
+		if credits_reward > 0:
+			message += " | +%d CC" % credits_reward
+		hud.push_message(message)
+	GameServices.log_event("mining.node_mined", {
+		"resource_id": resource_id,
 		"item_id": item_id,
 		"quantity": quantity,
 		"credits": credits_reward,
@@ -536,9 +595,10 @@ func _spawn_reward_pickup(
 	quantity: int,
 	credits_reward: int,
 	position_hint: Vector3,
-	claim_source: String = "runtime"
+	claim_source: String = "runtime",
+	claim_id_override: String = ""
 ) -> void:
-	var claim_id: String = _build_reward_claim_id(claim_source, item_id, quantity, credits_reward)
+	var claim_id: String = claim_id_override if not claim_id_override.is_empty() else _build_reward_claim_id(claim_source, item_id, quantity, credits_reward)
 	if PickupItemScene == null:
 		if GameServices.authority_service != null and GameServices.authority_service.has_method("is_authority_connected") and GameServices.authority_service.is_authority_connected():
 			GameServices.authority_service.claim_reward(item_id, quantity, credits_reward, "pickup.spawn_fallback", {

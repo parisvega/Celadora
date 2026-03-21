@@ -26,6 +26,24 @@ async function main() {
   });
   assertOk(response, "reward");
 
+  response = await post("/world/resources/sync", {
+    resources: [
+      { resource_id: "resource_smoke_blue", item_id: "dust_blue", quantity: 1, credits: 3, position: [1, 0, 2] }
+    ]
+  });
+  assertOk(response, "resource sync");
+
+  response = await post("/world/resources/mine", {
+    resource: { resource_id: "resource_smoke_blue" }
+  });
+  assertOk(response, "resource mine");
+
+  response = await post("/reward/claim", {
+    claim_id: response.data.claim_id,
+    source: "authority_smoke_reserved"
+  });
+  assertOk(response, "reserved reward claim");
+
   response = await post("/craft/execute", { recipe_id: "alloy_recipe" });
   assertOk(response, "craft");
 

@@ -106,13 +106,15 @@ func claim_reward(item_id: String, quantity: int = 0, credits: int = 0, source: 
 
 	var snapshot: Dictionary = response.get("data", {}).get("snapshot", {})
 	_apply_snapshot(snapshot)
+	var granted_item_id: String = str(response.get("data", {}).get("granted_item_id", item_id)).strip_edges()
+	var granted_quantity: int = int(response.get("data", {}).get("granted_quantity", quantity))
 	var final_credits: int = int(response.get("data", {}).get("granted_credits", 0))
 	var reason: String = "Reward granted."
-	if not item_id.is_empty():
-		reason = "Received %s x%d" % [item_id, max(quantity, 1)]
+	if not granted_item_id.is_empty():
+		reason = "Received %s x%d" % [granted_item_id, max(granted_quantity, 1)]
 	GameServices.log_event("authority.reward_claimed", {
-		"item_id": item_id,
-		"quantity": quantity,
+		"item_id": granted_item_id,
+		"quantity": granted_quantity,
 		"credits": final_credits,
 		"source": source
 	})
@@ -143,6 +145,48 @@ func craft_recipe(recipe_id: String) -> Dictionary:
 		"ok": true,
 		"reason": "Crafted %s" % str(payload.get("recipe_name", recipe_id)),
 		"outputs": outputs.duplicate(true)
+	}
+
+func sync_resource_catalog(resources: Array) -> Dictionary:
+	if not _connected:
+		return {"ok": false, "reason": "Authority service is not connected."}
+	var response: Dictionary = _network_service.sync_resource_catalog({
+		"session_id": _session_id,
+		"resources": resources.duplicate(true)
+	})
+	if not response.get("ok", false):
+		return {"ok": false, "reason": str(response.get("error", "Resource catalog sync failed."))}
+	return {
+		"ok": true,
+		"reason": "Resource catalog synced.",
+		"registered": int(response.get("data", {}).get("registered", 0))
+	}
+
+func mine_resource(resource_payload: Dictionary) -> Dictionary:
+	if not _connected:
+		return {"ok": false, "reason": "Authority service is not connected."}
+	var response: Dictionary = _network_service.submit_resource_mine({
+		"session_id": _session_id,
+		"resource": resource_payload.duplicate(true)
+	})
+	if not response.get("ok", false):
+		return {"ok": false, "reason": str(response.get("error", "Resource claim failed."))}
+	var payload: Dictionary = response.get("data", {})
+	GameServices.log_event("authority.resource_mined", {
+		"resource_id": str(payload.get("resource_id", "")),
+		"claim_id": str(payload.get("claim_id", "")),
+		"item_id": str(payload.get("item_id", "")),
+		"quantity": int(payload.get("quantity", 0)),
+		"credits": int(payload.get("credits", 0))
+	})
+	return {
+		"ok": true,
+		"reason": "Resource authorized.",
+		"resource_id": str(payload.get("resource_id", "")),
+		"claim_id": str(payload.get("claim_id", "")),
+		"item_id": str(payload.get("item_id", "")),
+		"quantity": int(payload.get("quantity", 0)),
+		"credits": int(payload.get("credits", 0))
 	}
 
 func refresh_market() -> Dictionary:

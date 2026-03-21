@@ -23,6 +23,12 @@ func submit_reward_claim(_claim: Dictionary) -> Dictionary:
 func submit_craft_request(_request: Dictionary) -> Dictionary:
 	return _not_implemented("submit_craft_request")
 
+func sync_resource_catalog(_payload: Dictionary) -> Dictionary:
+	return _not_implemented("sync_resource_catalog")
+
+func submit_resource_mine(_request: Dictionary) -> Dictionary:
+	return _not_implemented("submit_resource_mine")
+
 func wrap_client_event(event_type: String, payload: Dictionary, context: Dictionary = {}) -> Dictionary:
 	_event_sequence += 1
 	return {

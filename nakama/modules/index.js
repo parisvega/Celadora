@@ -23,6 +23,12 @@ function InitModule(ctx, logger, nk, initializer) {
   initializer.registerRpc("celadora_submit_combat_event", function (ctx, logger, nk, payload) {
     return jsonRpc(submitCombatEventRpc(ctx, payload, nk));
   });
+  initializer.registerRpc("celadora_sync_resource_catalog", function (ctx, logger, nk, payload) {
+    return jsonRpc(syncResourceCatalogRpc(ctx, payload, nk));
+  });
+  initializer.registerRpc("celadora_submit_resource_mine", function (ctx, logger, nk, payload) {
+    return jsonRpc(submitResourceMineRpc(ctx, payload, nk));
+  });
   logger.info("Celadora Nakama authority module loaded.");
 }
 
@@ -49,6 +55,9 @@ function syncStateRpc(ctx, payload, nk) {
   if (forceBootstrap || !record.statePresent) {
     record.state = normalizeState(incomingState);
     record.state.claimed_rewards = {};
+    record.state.resource_catalog = {};
+    record.state.reserved_reward_claims = {};
+    record.state.mined_resource_ids = resourceFlagsToIds(record.state.world_state);
     record.statePresent = true;
     ensureMarketSeeded(record.state);
     persistAuthorityRecord(ctx, nk, record.state);
@@ -82,6 +91,12 @@ function submitRewardClaimRpc(ctx, payload, nk) {
   var claimId = typeof body.claim_id === "string" ? body.claim_id.trim() : "";
   var quantity = Math.max(0, Number(body.quantity || 0));
   var credits = Math.max(0, Number(body.credits || 0));
+  if (claimId && isObject(record.state.reserved_reward_claims[claimId])) {
+    var reserved = record.state.reserved_reward_claims[claimId];
+    itemId = typeof reserved.item_id === "string" ? reserved.item_id.trim() : itemId;
+    quantity = Math.max(0, Number(reserved.quantity || quantity));
+    credits = Math.max(0, Number(reserved.credits || credits));
+  }
   if (!itemId && credits <= 0) {
     return fail("Reward claim must include an item or credits.");
   }
@@ -93,6 +108,7 @@ function submitRewardClaimRpc(ctx, payload, nk) {
   }
   if (claimId) {
     record.state.claimed_rewards[claimId] = Date.now();
+    delete record.state.reserved_reward_claims[claimId];
   }
 
   if (itemId) {
@@ -106,6 +122,58 @@ function submitRewardClaimRpc(ctx, payload, nk) {
     granted_quantity: quantity,
     granted_credits: grantedCredits,
     snapshot: economySnapshot(record.state)
+  });
+}
+
+function syncResourceCatalogRpc(ctx, payload, nk) {
+  ensureUserContext(ctx);
+  var body = parsePayload(payload);
+  var record = loadAuthorityRecord(ctx, nk);
+  var resources = Array.isArray(body.resources) ? body.resources : [];
+  var registered = 0;
+  for (var i = 0; i < resources.length; i++) {
+    var resource = sanitizeResourceDef(resources[i]);
+    if (!resource) {
+      continue;
+    }
+    record.state.resource_catalog[resource.resource_id] = resource;
+    registered += 1;
+  }
+  persistAuthorityRecord(ctx, nk, record.state);
+  return ok({ registered: registered });
+}
+
+function submitResourceMineRpc(ctx, payload, nk) {
+  ensureUserContext(ctx);
+  var body = parsePayload(payload);
+  var record = loadAuthorityRecord(ctx, nk);
+  var resourceBody = isObject(body.resource) ? body.resource : {};
+  var resourceId = typeof resourceBody.resource_id === "string" ? resourceBody.resource_id.trim() : "";
+  if (!resourceId) {
+    return fail("Resource ID is required.");
+  }
+  if (record.state.mined_resource_ids[resourceId]) {
+    return fail("Resource already mined.");
+  }
+  var resource = record.state.resource_catalog[resourceId];
+  if (!isObject(resource)) {
+    return fail("Unknown resource node.");
+  }
+  var claimId = "resource:" + resourceId;
+  record.state.reserved_reward_claims[claimId] = {
+    item_id: resource.item_id,
+    quantity: Number(resource.quantity || 1),
+    credits: Number(resource.credits || 0),
+    source: "resource:" + resourceId
+  };
+  record.state.mined_resource_ids[resourceId] = Date.now();
+  persistAuthorityRecord(ctx, nk, record.state);
+  return ok({
+    resource_id: resourceId,
+    claim_id: claimId,
+    item_id: resource.item_id,
+    quantity: Number(resource.quantity || 1),
+    credits: Number(resource.credits || 0)
   });
 }
 
@@ -318,6 +386,9 @@ function normalizeState(raw) {
     unlocked_lore: sanitizeStringArray(state.unlocked_lore),
     timestamp: typeof state.timestamp === "string" ? state.timestamp : "",
     claimed_rewards: isObject(state.claimed_rewards) ? deepClone(state.claimed_rewards) : {},
+    resource_catalog: isObject(state.resource_catalog) ? deepClone(state.resource_catalog) : {},
+    reserved_reward_claims: isObject(state.reserved_reward_claims) ? deepClone(state.reserved_reward_claims) : {},
+    mined_resource_ids: isObject(state.mined_resource_ids) ? deepClone(state.mined_resource_ids) : {},
     combat_events: Array.isArray(state.combat_events) ? deepClone(state.combat_events) : []
   };
 }
@@ -491,6 +562,43 @@ function sanitizeWorldState(raw) {
       continue;
     }
     out[flagId] = Boolean(raw[key]);
+  }
+  return out;
+}
+
+function sanitizeResourceDef(raw) {
+  if (!isObject(raw)) {
+    return null;
+  }
+  var resourceId = typeof raw.resource_id === "string" ? raw.resource_id.trim() : "";
+  var itemId = typeof raw.item_id === "string" ? raw.item_id.trim() : "";
+  if (!resourceId || !itemId || !getItemDefs()[itemId]) {
+    return null;
+  }
+  return {
+    resource_id: resourceId,
+    item_id: itemId,
+    quantity: Math.max(1, Number(raw.quantity || 1)),
+    credits: Math.max(0, Number(raw.credits || 0)),
+    position: Array.isArray(raw.position) ? deepClone(raw.position) : []
+  };
+}
+
+function resourceFlagsToIds(worldState) {
+  var out = {};
+  for (var flagId in (worldState || {})) {
+    if (!Object.prototype.hasOwnProperty.call(worldState, flagId)) {
+      continue;
+    }
+    var flagName = String(flagId || "").trim();
+    if (flagName.indexOf("resource_mined:") !== 0 || !Boolean(worldState[flagId])) {
+      continue;
+    }
+    var resourceId = flagName.slice("resource_mined:".length).trim();
+    if (!resourceId) {
+      continue;
+    }
+    out[resourceId] = Date.now();
   }
   return out;
 }

@@ -31,6 +31,12 @@ func submit_reward_claim(claim: Dictionary) -> Dictionary:
 func submit_craft_request(request: Dictionary) -> Dictionary:
 	return _request_json(HTTPClient.METHOD_POST, "/craft/execute", request)
 
+func sync_resource_catalog(payload: Dictionary) -> Dictionary:
+	return _request_json(HTTPClient.METHOD_POST, "/world/resources/sync", payload)
+
+func submit_resource_mine(request: Dictionary) -> Dictionary:
+	return _request_json(HTTPClient.METHOD_POST, "/world/resources/mine", request)
+
 func _parse_base_url() -> void:
 	_host = ""
 	_port = 80

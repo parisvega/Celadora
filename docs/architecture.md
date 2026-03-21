@@ -16,6 +16,7 @@
 - `LoreJournalService`: unlock tracking for location-based lore entries.
 - `MarketplaceService`: local listing simulation with provider seam for server authority.
 - `AuthorityService`: merges local save/runtime state with authoritative snapshots and routes reward/crafting/market mutations.
+- `AuthorityService` also syncs the runtime resource catalog and requires authority approval before depleted nodes grant rewards.
 - `NetworkService`: stable transport contract for authority calls.
 - `LocalNetworkService`: in-process authoritative implementation used by default.
 - `HttpNetworkService`: optional desktop transport for a local/external authority process.
@@ -70,6 +71,11 @@ Moon dust runtime identity is also data-driven via `items[].dust_profile`:
 - Optional server process:
   - `scripts/server/authority_server.mjs`
   - persisted local state: `artifacts/authority/state.local.json`
+- Resource authority slice:
+  - resource nodes get stable IDs from `ResourceSpawner`
+  - `ResourceSpawner` syncs canonical resource definitions into authority
+  - `PlayerController` requests `mine_resource` approval when a node depletes
+  - authority approves the node and reward settlement is committed immediately through the same authority boundary
 - Optional Nakama provider:
   - `scripts/services/network/nakama_network_service.gd`
   - `nakama/modules/index.js`

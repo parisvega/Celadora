@@ -8,6 +8,9 @@ var _item_defs: Dictionary = {}
 var _recipe_defs: Dictionary = {}
 var _authoritative_state: Dictionary = {}
 var _claimed_reward_ids: Dictionary = {}
+var _resource_catalog: Dictionary = {}
+var _mined_resource_ids: Dictionary = {}
+var _reserved_reward_claims: Dictionary = {}
 
 func setup(data_service: Node) -> void:
 	_data_service = data_service
@@ -85,6 +88,11 @@ func submit_reward_claim(claim: Dictionary) -> Dictionary:
 	var claim_id: String = str(claim.get("claim_id", "")).strip_edges()
 	var quantity: int = max(0, int(claim.get("quantity", 0)))
 	var base_credits: int = max(0, int(claim.get("credits", 0)))
+	if not claim_id.is_empty() and _reserved_reward_claims.has(claim_id):
+		var reserved: Dictionary = _reserved_reward_claims.get(claim_id, {})
+		item_id = str(reserved.get("item_id", item_id)).strip_edges()
+		quantity = max(0, int(reserved.get("quantity", quantity)))
+		base_credits = max(0, int(reserved.get("credits", base_credits)))
 	if item_id.is_empty() and base_credits <= 0:
 		return {"ok": false, "error": "Reward claim must include an item or credits.", "data": {}}
 	if not item_id.is_empty() and quantity <= 0:
@@ -95,6 +103,7 @@ func submit_reward_claim(claim: Dictionary) -> Dictionary:
 		if _claimed_reward_ids.has(claim_id):
 			return {"ok": false, "error": "Reward claim already consumed.", "data": {}}
 		_claimed_reward_ids[claim_id] = true
+		_reserved_reward_claims.erase(claim_id)
 
 	if not item_id.is_empty():
 		var inventory: Dictionary = _get_inventory_state()
@@ -157,6 +166,60 @@ func submit_craft_request(request: Dictionary) -> Dictionary:
 			"recipe_name": str(recipe.get("name", recipe_id)),
 			"outputs": outputs.duplicate(true),
 			"snapshot": _economy_snapshot()
+		}
+	}
+
+func sync_resource_catalog(payload: Dictionary) -> Dictionary:
+	if not _connected:
+		return {"ok": false, "error": "Not connected.", "data": {}}
+	var raw_resources: Variant = payload.get("resources", [])
+	if typeof(raw_resources) != TYPE_ARRAY:
+		return {"ok": false, "error": "Resource catalog must be an array.", "data": {}}
+	var registered: int = 0
+	for row in raw_resources:
+		if typeof(row) != TYPE_DICTIONARY:
+			continue
+		var resource: Dictionary = _sanitize_resource_def(row as Dictionary)
+		if resource.is_empty():
+			continue
+		var resource_id: String = str(resource.get("resource_id", ""))
+		_resource_catalog[resource_id] = resource
+		registered += 1
+	return {"ok": true, "error": "", "data": {"registered": registered}}
+
+func submit_resource_mine(request: Dictionary) -> Dictionary:
+	if not _connected:
+		return {"ok": false, "error": "Not connected.", "data": {}}
+	var raw_resource: Variant = request.get("resource", {})
+	if typeof(raw_resource) != TYPE_DICTIONARY:
+		return {"ok": false, "error": "Resource mine payload must be a dictionary.", "data": {}}
+	var resource_id: String = str((raw_resource as Dictionary).get("resource_id", "")).strip_edges()
+	if resource_id.is_empty():
+		return {"ok": false, "error": "Resource ID is required.", "data": {}}
+	if _mined_resource_ids.has(resource_id):
+		return {"ok": false, "error": "Resource already mined.", "data": {}}
+	var resource: Dictionary = _resource_catalog.get(resource_id, {})
+	if resource.is_empty():
+		return {"ok": false, "error": "Unknown resource node.", "data": {}}
+
+	var claim_id: String = "resource:%s" % resource_id
+	var reward: Dictionary = {
+		"item_id": str(resource.get("item_id", "")),
+		"quantity": max(1, int(resource.get("quantity", 1))),
+		"credits": max(0, int(resource.get("credits", 0))),
+		"source": "resource:%s" % resource_id
+	}
+	_reserved_reward_claims[claim_id] = reward
+	_mined_resource_ids[resource_id] = true
+	return {
+		"ok": true,
+		"error": "",
+		"data": {
+			"resource_id": resource_id,
+			"claim_id": claim_id,
+			"item_id": reward.get("item_id", ""),
+			"quantity": reward.get("quantity", 1),
+			"credits": reward.get("credits", 0)
 		}
 	}
 
@@ -289,6 +352,9 @@ func _reset_authoritative_state(state_present: bool) -> void:
 	}
 	_state_present = state_present
 	_claimed_reward_ids = {}
+	_resource_catalog = {}
+	_mined_resource_ids = {}
+	_reserved_reward_claims = {}
 
 func _apply_external_state(state: Dictionary) -> void:
 	_reset_authoritative_state(true)
@@ -299,6 +365,7 @@ func _apply_external_state(state: Dictionary) -> void:
 	_authoritative_state["world_state"] = _sanitize_world_state(state.get("world_state", {}))
 	_authoritative_state["unlocked_lore"] = _sanitize_string_array(state.get("unlocked_lore", []))
 	_authoritative_state["timestamp"] = str(state.get("timestamp", ""))
+	_rebuild_mined_resources_from_world_state()
 	_ensure_market_seeded()
 
 func _merge_runtime_state(state: Dictionary) -> void:
@@ -306,6 +373,7 @@ func _merge_runtime_state(state: Dictionary) -> void:
 	_authoritative_state["world_state"] = _sanitize_world_state(state.get("world_state", _authoritative_state.get("world_state", {})))
 	_authoritative_state["unlocked_lore"] = _sanitize_string_array(state.get("unlocked_lore", _authoritative_state.get("unlocked_lore", [])))
 	_authoritative_state["timestamp"] = str(state.get("timestamp", _authoritative_state.get("timestamp", "")))
+	_rebuild_mined_resources_from_world_state()
 
 func _snapshot() -> Dictionary:
 	return {
@@ -475,3 +543,32 @@ func _sanitize_string_array(raw_values: Variant) -> Array:
 		seen[text] = true
 		out.append(text)
 	return out
+
+func _sanitize_resource_def(resource: Dictionary) -> Dictionary:
+	var resource_id: String = str(resource.get("resource_id", "")).strip_edges()
+	var item_id: String = str(resource.get("item_id", "")).strip_edges()
+	if resource_id.is_empty() or item_id.is_empty():
+		return {}
+	if _item_defs.is_empty() == false and _item_defs.has(item_id) == false:
+		return {}
+	return {
+		"resource_id": resource_id,
+		"item_id": item_id,
+		"quantity": max(1, int(resource.get("quantity", 1))),
+		"credits": max(0, int(resource.get("credits", 0))),
+		"position": resource.get("position", []).duplicate(true) if typeof(resource.get("position", [])) == TYPE_ARRAY else []
+	}
+
+func _rebuild_mined_resources_from_world_state() -> void:
+	_mined_resource_ids = {}
+	var world_state: Dictionary = _authoritative_state.get("world_state", {})
+	for key in world_state.keys():
+		var flag_id: String = str(key).strip_edges()
+		if not flag_id.begins_with("resource_mined:"):
+			continue
+		if not bool(world_state.get(flag_id, false)):
+			continue
+		var resource_id: String = flag_id.trim_prefix("resource_mined:")
+		if resource_id.is_empty():
+			continue
+		_mined_resource_ids[resource_id] = true

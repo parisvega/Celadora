@@ -67,6 +67,10 @@ function routeRequest(method, pathname, body) {
       return handleRewardClaim(body);
     case "POST /craft/execute":
       return handleCraftExecute(body);
+    case "POST /world/resources/sync":
+      return handleResourceCatalogSync(body);
+    case "POST /world/resources/mine":
+      return handleResourceMine(body);
     case "POST /combat/event":
       appendCombatEvent(body);
       persistStore();
@@ -85,6 +89,9 @@ function handleSyncState(body) {
   if (forceBootstrap || !store.state_present) {
     store.player = normalizeState(incoming);
     store.claimed_rewards = {};
+    store.resource_catalog = {};
+    store.reserved_reward_claims = {};
+    store.mined_resource_ids = resourceFlagsToIds(store.player.world_state);
     store.state_present = true;
     ensureMarketSeeded();
     persistStore();
@@ -102,15 +109,22 @@ function handleSyncState(body) {
 function handleRewardClaim(body) {
   const itemId = typeof body.item_id === "string" ? body.item_id.trim() : "";
   const claimId = typeof body.claim_id === "string" ? body.claim_id.trim() : "";
-  const quantity = Math.max(0, Number.parseInt(body.quantity ?? "0", 10));
-  const credits = Math.max(0, Number.parseInt(body.credits ?? "0", 10));
-  if (!itemId && credits <= 0) {
+  let quantity = Math.max(0, Number.parseInt(body.quantity ?? "0", 10));
+  let credits = Math.max(0, Number.parseInt(body.credits ?? "0", 10));
+  let resolvedItemId = itemId;
+  if (claimId && isObject(store.reserved_reward_claims[claimId])) {
+    const reserved = store.reserved_reward_claims[claimId];
+    resolvedItemId = typeof reserved.item_id === "string" ? reserved.item_id.trim() : "";
+    quantity = Math.max(0, Number.parseInt(reserved.quantity ?? quantity, 10));
+    credits = Math.max(0, Number.parseInt(reserved.credits ?? credits, 10));
+  }
+  if (!resolvedItemId && credits <= 0) {
     return fail(400, "Reward claim must include an item or credits.");
   }
-  if (itemId && quantity <= 0) {
+  if (resolvedItemId && quantity <= 0) {
     return fail(400, "Reward claim quantity must be at least 1.");
   }
-  if (itemId && !itemMap.has(itemId)) {
+  if (resolvedItemId && !itemMap.has(resolvedItemId)) {
     return fail(400, "Unknown item reward.");
   }
   if (claimId && store.claimed_rewards[claimId]) {
@@ -118,19 +132,66 @@ function handleRewardClaim(body) {
   }
   if (claimId) {
     store.claimed_rewards[claimId] = Math.floor(Date.now() / 1000);
+    delete store.reserved_reward_claims[claimId];
   }
 
-  if (itemId) {
-    store.player.inventory[itemId] = Number(store.player.inventory[itemId] ?? 0) + quantity;
+  if (resolvedItemId) {
+    store.player.inventory[resolvedItemId] = Number(store.player.inventory[resolvedItemId] ?? 0) + quantity;
   }
   const grantedCredits = applyCreditGain(credits);
   store.state_present = true;
   persistStore();
   return ok({
-    granted_item_id: itemId,
+    granted_item_id: resolvedItemId,
     granted_quantity: quantity,
     granted_credits: grantedCredits,
     snapshot: economySnapshot(),
+  });
+}
+
+function handleResourceCatalogSync(body) {
+  const resources = Array.isArray(body.resources) ? body.resources : [];
+  let registered = 0;
+  for (const row of resources) {
+    const resource = sanitizeResourceDef(row);
+    if (!resource) {
+      continue;
+    }
+    store.resource_catalog[resource.resource_id] = resource;
+    registered += 1;
+  }
+  persistStore();
+  return ok({ registered });
+}
+
+function handleResourceMine(body) {
+  const resourceBody = isObject(body.resource) ? body.resource : {};
+  const resourceId = typeof resourceBody.resource_id === "string" ? resourceBody.resource_id.trim() : "";
+  if (!resourceId) {
+    return fail(400, "Resource ID is required.");
+  }
+  if (store.mined_resource_ids[resourceId]) {
+    return fail(409, "Resource already mined.");
+  }
+  const resource = store.resource_catalog[resourceId];
+  if (!isObject(resource)) {
+    return fail(404, "Unknown resource node.");
+  }
+  const claimId = `resource:${resourceId}`;
+  store.reserved_reward_claims[claimId] = {
+    item_id: resource.item_id,
+    quantity: Number(resource.quantity ?? 1),
+    credits: Number(resource.credits ?? 0),
+    source: `resource:${resourceId}`,
+  };
+  store.mined_resource_ids[resourceId] = Math.floor(Date.now() / 1000);
+  persistStore();
+  return ok({
+    resource_id: resourceId,
+    claim_id: claimId,
+    item_id: resource.item_id,
+    quantity: Number(resource.quantity ?? 1),
+    credits: Number(resource.credits ?? 0),
   });
 }
 
@@ -389,6 +450,9 @@ function normalizeStore(raw) {
     state_present: Boolean(storeIn.state_present),
     player: normalizeState(storeIn.player),
     claimed_rewards: isObject(storeIn.claimed_rewards) ? deepClone(storeIn.claimed_rewards) : {},
+    resource_catalog: isObject(storeIn.resource_catalog) ? deepClone(storeIn.resource_catalog) : {},
+    reserved_reward_claims: isObject(storeIn.reserved_reward_claims) ? deepClone(storeIn.reserved_reward_claims) : {},
+    mined_resource_ids: isObject(storeIn.mined_resource_ids) ? deepClone(storeIn.mined_resource_ids) : {},
     event_log: Array.isArray(storeIn.event_log) ? deepClone(storeIn.event_log) : [],
   };
 }
@@ -465,6 +529,40 @@ function sanitizeWorldState(raw) {
       continue;
     }
     out[key] = Boolean(value);
+  }
+  return out;
+}
+
+function sanitizeResourceDef(raw) {
+  if (!isObject(raw)) {
+    return null;
+  }
+  const resourceId = typeof raw.resource_id === "string" ? raw.resource_id.trim() : "";
+  const itemId = typeof raw.item_id === "string" ? raw.item_id.trim() : "";
+  if (!resourceId || !itemId || !itemMap.has(itemId)) {
+    return null;
+  }
+  return {
+    resource_id: resourceId,
+    item_id: itemId,
+    quantity: Math.max(1, Number.parseInt(raw.quantity ?? "1", 10)),
+    credits: Math.max(0, Number.parseInt(raw.credits ?? "0", 10)),
+    position: Array.isArray(raw.position) ? deepClone(raw.position) : [],
+  };
+}
+
+function resourceFlagsToIds(worldState) {
+  const out = {};
+  for (const [flagIdRaw, enabledRaw] of Object.entries(worldState || {})) {
+    const flagId = String(flagIdRaw).trim();
+    if (!flagId.startsWith("resource_mined:") || !Boolean(enabledRaw)) {
+      continue;
+    }
+    const resourceId = flagId.slice("resource_mined:".length).trim();
+    if (!resourceId) {
+      continue;
+    }
+    out[resourceId] = Math.floor(Date.now() / 1000);
   }
   return out;
 }

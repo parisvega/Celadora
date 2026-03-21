@@ -36,6 +36,8 @@ const STARTER_OFFSETS = [
 ]
 
 var _rng = RandomNumberGenerator.new()
+var _resource_counter: int = 0
+var _resource_catalog: Array = []
 
 func _ready() -> void:
 	_rng.seed = 2026
@@ -49,6 +51,8 @@ func _spawn_all() -> void:
 	if world_spawner == null:
 		push_error("ResourceSpawner could not find WorldSpawner.")
 		return
+	_resource_counter = 0
+	_resource_catalog = []
 
 	_spawn_starter_resources(world_spawner)
 
@@ -56,6 +60,7 @@ func _spawn_all() -> void:
 		_spawn_resource(world_spawner, true)
 	for _i in range(crystal_nodes):
 		_spawn_resource(world_spawner, false)
+	_sync_authority_catalog()
 
 func _spawn_resource(world_spawner: Node, is_dust: bool) -> void:
 	var radius = world_spawner.get_world_radius() * 0.9
@@ -95,11 +100,38 @@ func _spawn_resource_at(
 	yield_quantity: int,
 	credit_reward: int
 ) -> void:
-	var surface: Vector3 = world_spawner.get_surface_position(position_xz.x, position_xz.y)
+	var world_position: Vector3 = world_spawner.get_surface_position(position_xz.x, position_xz.y) + Vector3(0, 0.65, 0)
+	var resource_id: String = _allocate_resource_id(item_id)
+	var world_flag_id: String = "resource_mined:%s" % resource_id
+	if GameServices.get_world_flag(world_flag_id, false):
+		return
 	var resource = resource_scene.instantiate()
-	add_child(resource)
-	resource.global_position = surface + Vector3(0, 0.65, 0)
 	resource.item_id = item_id
+	resource.resource_id = resource_id
 	resource.durability = max(0.5, durability)
 	resource.yield_quantity = max(1, yield_quantity)
 	resource.credit_reward = max(0, credit_reward)
+	add_child(resource)
+	resource.global_position = world_position
+	_resource_catalog.append({
+		"resource_id": resource_id,
+		"item_id": item_id,
+		"quantity": max(1, yield_quantity),
+		"credits": max(0, credit_reward),
+		"position": [world_position.x, world_position.y, world_position.z]
+	})
+
+func _allocate_resource_id(item_id: String) -> String:
+	_resource_counter += 1
+	return "resource_%04d_%s" % [_resource_counter, item_id]
+
+func _sync_authority_catalog() -> void:
+	if _resource_catalog.is_empty():
+		return
+	if GameServices.authority_service == null:
+		return
+	if not GameServices.authority_service.has_method("is_authority_connected") or not GameServices.authority_service.is_authority_connected():
+		return
+	var result: Dictionary = GameServices.authority_service.sync_resource_catalog(_resource_catalog)
+	if not result.get("ok", false):
+		push_warning("[ResourceSpawner] Authority resource sync failed: %s" % str(result.get("reason", "unknown")))
