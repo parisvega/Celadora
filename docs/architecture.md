@@ -17,6 +17,7 @@
 - `MarketplaceService`: local listing simulation with provider seam for server authority.
 - `AuthorityService`: merges local save/runtime state with authoritative snapshots and routes reward/crafting/market mutations.
 - `AuthorityService` also syncs the runtime resource catalog and requires authority approval before depleted nodes grant rewards.
+- `AuthorityService` now also settles enemy defeat rewards against canonical enemy definitions before a bot is removed locally.
 - `NetworkService`: stable transport contract for authority calls.
 - `LocalNetworkService`: in-process authoritative implementation used by default.
 - `HttpNetworkService`: optional desktop transport for a local/external authority process.
@@ -54,6 +55,7 @@ Moon dust runtime identity is also data-driven via `items[].dust_profile`:
 - Keep `AuthorityService` as the single gameplay seam for reward claims, crafting requests, market orders, and state synchronization.
 - Reward/pickup settlement now carries explicit `claim_id` values so the authority layer can reject duplicate claims.
 - Move resource-claim validation, enemy state, and combat resolution server-side in later slices.
+- Enemy defeat rewards are authoritative now, but enemy HP and hit validation remain client-simulated.
 - Keep client as prediction/presentation layer while authority transitions to backend.
 - Use `NetworkService.wrap_client_event(...)` envelopes as stable client-event contracts when routing through authoritative RPC pipelines.
 
@@ -76,6 +78,11 @@ Moon dust runtime identity is also data-driven via `items[].dust_profile`:
   - `ResourceSpawner` syncs canonical resource definitions into authority
   - `PlayerController` requests `mine_resource` approval when a node depletes
   - authority approves the node and reward settlement is committed immediately through the same authority boundary
+- Enemy authority slice:
+  - enemy nodes get stable instance IDs from `EnemyController`
+  - `EnemyController` submits `enemy_defeat` to authority on death
+  - authority resolves canonical drops/credits and returns the updated economy snapshot
+  - client then marks the bot defeated in `world_state`
 - Optional Nakama provider:
   - `scripts/services/network/nakama_network_service.gd`
   - `nakama/modules/index.js`

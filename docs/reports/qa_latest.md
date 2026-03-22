@@ -1,8 +1,8 @@
 # Celadora Headless QA Report
 
-- Started: 2026-03-21T19:25:41
-- Ended: 2026-03-21T19:25:42
-- Result: PASS (23/23 passed)
+- Started: 2026-03-22T04:11:56
+- Ended: 2026-03-22T04:11:57
+- Result: PASS (24/24 passed)
 
 ## Checks
 
@@ -15,8 +15,8 @@
 | viewmodel_meshes_ready | PASS | critical | {"arm_left":true,"arm_right":true,"hand_left":true,"hand_right":true,"tool_mesh":true} |
 | viewmodel_unshaded_material | PASS | critical | {"shading_mode":0} |
 | viewmodel_has_active_tool | PASS | critical | {"active_tool":"miner"} |
-| viewmodel_mine_action_animates | PASS | critical | {"before":[30.0000019073486,-14,-6],"delta":16.5448951721191,"during":[14.5800809860229,-8.00336456298828,-6]} |
-| viewmodel_points_project_into_view | PASS | critical | {"left_visible":true,"probes":[{"in_bounds":true,"in_front":true,"name":"ArmLeftMesh","screen":[679,920]},{"in_bounds":true,"in_front":true,"name":"ArmRightMesh","screen":[1096,932]},{"in_bounds":true,"in_front":true,"name":"HandLeftMesh","screen":[664,839]},{"in_bounds":true,"in_front":true,"name":"HandRightMesh","screen":[932,877]},{"in_bounds":true,"in_front":true,"name":"ToolMesh","screen":[1067,905]}],"right_visible":true,"viewport":[1280,1280],"visible_points":5} |
+| viewmodel_mine_action_animates | PASS | critical | {"before":[30.0000019073486,-14,-6],"delta":17.1060905456543,"during":[14.0570449829102,-7.79996109008789,-6]} |
+| viewmodel_points_project_into_view | PASS | critical | {"left_visible":true,"probes":[{"in_bounds":true,"in_front":true,"name":"ArmLeftMesh","screen":[679,920]},{"in_bounds":true,"in_front":true,"name":"ArmRightMesh","screen":[1096,932]},{"in_bounds":true,"in_front":true,"name":"HandLeftMesh","screen":[664,839]},{"in_bounds":true,"in_front":true,"name":"HandRightMesh","screen":[932,879]},{"in_bounds":true,"in_front":true,"name":"ToolMesh","screen":[1067,906]}],"right_visible":true,"viewport":[1280,1280],"visible_points":5} |
 | moon_system_spawns_8 | PASS | critical | {"moon_children":8} |
 | required_items_loaded | PASS | critical | {} |
 | viewmodel_config_loaded | PASS | critical | {} |
@@ -31,3 +31,4 @@
 | ruins_terminal_can_be_primed | PASS | critical | {"dream_seed_qty":1,"interact_result":{"message":"Terminal synced. Ruins protocol primed (boss encounter arrives in a future update).","ok":true,"state":"primed"},"lore_count":3,"moonblade_qty":1,"primed_status":{"missing_requirements":[],"name":"Greegion Terminal","requirements_missing":0,"state":"primed","type":"terminal"},"world_flag_primed":true} |
 | save_load_world_flag_roundtrip | PASS | critical | {"reloaded_flag":true,"saved_flag":true,"write_ok":true} |
 | save_legacy_migration | PASS | critical | {} |
+| enemy_authority_defeat_settlement | PASS | critical | {"after_credits":39,"after_scrap":2,"before_credits":25,"before_scrap":0,"bot_removed":true,"defeated_flag":true,"enemy_instance_id":"greegion_miner_bot:minerbota"} |

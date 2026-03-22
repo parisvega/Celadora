@@ -6,11 +6,13 @@ var _session_id: String = ""
 var _state_present: bool = false
 var _item_defs: Dictionary = {}
 var _recipe_defs: Dictionary = {}
+var _enemy_defs: Dictionary = {}
 var _authoritative_state: Dictionary = {}
 var _claimed_reward_ids: Dictionary = {}
 var _resource_catalog: Dictionary = {}
 var _mined_resource_ids: Dictionary = {}
 var _reserved_reward_claims: Dictionary = {}
+var _defeated_enemy_ids: Dictionary = {}
 
 func setup(data_service: Node) -> void:
 	_data_service = data_service
@@ -223,6 +225,54 @@ func submit_resource_mine(request: Dictionary) -> Dictionary:
 		}
 	}
 
+func submit_enemy_defeat(request: Dictionary) -> Dictionary:
+	if not _connected:
+		return {"ok": false, "error": "Not connected.", "data": {}}
+	var raw_enemy: Variant = request.get("enemy", {})
+	if typeof(raw_enemy) != TYPE_DICTIONARY:
+		return {"ok": false, "error": "Enemy defeat payload must be a dictionary.", "data": {}}
+	var enemy_instance_id: String = str((raw_enemy as Dictionary).get("enemy_instance_id", "")).strip_edges()
+	var enemy_id: String = str((raw_enemy as Dictionary).get("enemy_id", "")).strip_edges()
+	if enemy_instance_id.is_empty():
+		return {"ok": false, "error": "Enemy instance ID is required.", "data": {}}
+	if enemy_id.is_empty():
+		return {"ok": false, "error": "Enemy ID is required.", "data": {}}
+	if _defeated_enemy_ids.has(enemy_instance_id):
+		return {"ok": false, "error": "Enemy already defeated.", "data": {}}
+	var enemy_def: Dictionary = _enemy_defs.get(enemy_id, {})
+	if enemy_def.is_empty():
+		return {"ok": false, "error": "Unknown enemy ID.", "data": {}}
+
+	_defeated_enemy_ids[enemy_instance_id] = true
+	var inventory: Dictionary = _get_inventory_state()
+	var grants: Array = []
+	for drop in enemy_def.get("drops", []):
+		if typeof(drop) != TYPE_DICTIONARY:
+			continue
+		var item_id: String = str(drop.get("item_id", "")).strip_edges()
+		var quantity: int = max(1, int(drop.get("quantity", 1)))
+		if item_id.is_empty():
+			continue
+		inventory[item_id] = int(inventory.get(item_id, 0)) + quantity
+		grants.append({
+			"item_id": item_id,
+			"quantity": quantity
+		})
+	_authoritative_state["inventory"] = inventory
+	var granted_credits: int = _apply_credit_gain(max(0, int(enemy_def.get("credit_reward", 0))))
+	return {
+		"ok": true,
+		"error": "",
+		"data": {
+			"enemy_instance_id": enemy_instance_id,
+			"enemy_id": enemy_id,
+			"grants": grants,
+			"credits": granted_credits,
+			"reason": "Salvaged %s" % enemy_id,
+			"snapshot": _economy_snapshot()
+		}
+	}
+
 func _process_buy_order(order: Dictionary) -> Dictionary:
 	var listing_id: String = str(order.get("listing_id", "")).strip_edges()
 	var quantity: int = int(order.get("quantity", 0))
@@ -324,6 +374,7 @@ func _process_sell_order(order: Dictionary) -> Dictionary:
 func _cache_catalog() -> void:
 	_item_defs.clear()
 	_recipe_defs.clear()
+	_enemy_defs.clear()
 	if _data_service == null:
 		return
 	for item_def in _data_service.get_all_items():
@@ -336,6 +387,11 @@ func _cache_catalog() -> void:
 		if recipe_id.is_empty():
 			continue
 		_recipe_defs[recipe_id] = recipe_def.duplicate(true)
+	for enemy_def in _data_service.get_all_enemies():
+		var enemy_id: String = str(enemy_def.get("id", "")).strip_edges()
+		if enemy_id.is_empty():
+			continue
+		_enemy_defs[enemy_id] = enemy_def.duplicate(true)
 
 func _reset_authoritative_state(state_present: bool) -> void:
 	_authoritative_state = {
@@ -355,6 +411,7 @@ func _reset_authoritative_state(state_present: bool) -> void:
 	_resource_catalog = {}
 	_mined_resource_ids = {}
 	_reserved_reward_claims = {}
+	_defeated_enemy_ids = {}
 
 func _apply_external_state(state: Dictionary) -> void:
 	_reset_authoritative_state(true)
@@ -365,7 +422,7 @@ func _apply_external_state(state: Dictionary) -> void:
 	_authoritative_state["world_state"] = _sanitize_world_state(state.get("world_state", {}))
 	_authoritative_state["unlocked_lore"] = _sanitize_string_array(state.get("unlocked_lore", []))
 	_authoritative_state["timestamp"] = str(state.get("timestamp", ""))
-	_rebuild_mined_resources_from_world_state()
+	_rebuild_runtime_authority_indexes()
 	_ensure_market_seeded()
 
 func _merge_runtime_state(state: Dictionary) -> void:
@@ -373,7 +430,7 @@ func _merge_runtime_state(state: Dictionary) -> void:
 	_authoritative_state["world_state"] = _sanitize_world_state(state.get("world_state", _authoritative_state.get("world_state", {})))
 	_authoritative_state["unlocked_lore"] = _sanitize_string_array(state.get("unlocked_lore", _authoritative_state.get("unlocked_lore", [])))
 	_authoritative_state["timestamp"] = str(state.get("timestamp", _authoritative_state.get("timestamp", "")))
-	_rebuild_mined_resources_from_world_state()
+	_rebuild_runtime_authority_indexes()
 
 func _snapshot() -> Dictionary:
 	return {
@@ -559,16 +616,19 @@ func _sanitize_resource_def(resource: Dictionary) -> Dictionary:
 		"position": resource.get("position", []).duplicate(true) if typeof(resource.get("position", [])) == TYPE_ARRAY else []
 	}
 
-func _rebuild_mined_resources_from_world_state() -> void:
+func _rebuild_runtime_authority_indexes() -> void:
 	_mined_resource_ids = {}
+	_defeated_enemy_ids = {}
 	var world_state: Dictionary = _authoritative_state.get("world_state", {})
 	for key in world_state.keys():
 		var flag_id: String = str(key).strip_edges()
-		if not flag_id.begins_with("resource_mined:"):
-			continue
 		if not bool(world_state.get(flag_id, false)):
 			continue
-		var resource_id: String = flag_id.trim_prefix("resource_mined:")
-		if resource_id.is_empty():
-			continue
-		_mined_resource_ids[resource_id] = true
+		if flag_id.begins_with("resource_mined:"):
+			var resource_id: String = flag_id.trim_prefix("resource_mined:")
+			if not resource_id.is_empty():
+				_mined_resource_ids[resource_id] = true
+		elif flag_id.begins_with("enemy_defeated:"):
+			var enemy_instance_id: String = flag_id.trim_prefix("enemy_defeated:")
+			if not enemy_instance_id.is_empty():
+				_defeated_enemy_ids[enemy_instance_id] = true

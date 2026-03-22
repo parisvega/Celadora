@@ -70,10 +70,10 @@
           -14,
           -6
         ],
-        "delta": 16.5448951721191,
+        "delta": 17.1060905456543,
         "during": [
-          14.5800809860229,
-          -8.00336456298828,
+          14.0570449829102,
+          -7.79996109008789,
           -6
         ]
       },
@@ -118,7 +118,7 @@
             "name": "HandRightMesh",
             "screen": [
               932,
-              877
+              879
             ]
           },
           {
@@ -127,7 +127,7 @@
             "name": "ToolMesh",
             "screen": [
               1067,
-              905
+              906
             ]
           }
         ],
@@ -270,13 +270,27 @@
       "id": "save_legacy_migration",
       "ok": true,
       "severity": "critical"
+    },
+    {
+      "details": {
+        "after_credits": 39,
+        "after_scrap": 2,
+        "before_credits": 25,
+        "before_scrap": 0,
+        "bot_removed": true,
+        "defeated_flag": true,
+        "enemy_instance_id": "greegion_miner_bot:minerbota"
+      },
+      "id": "enemy_authority_defeat_settlement",
+      "ok": true,
+      "severity": "critical"
     }
   ],
-  "ended_at": "2026-03-21T19:25:42",
-  "started_at": "2026-03-21T19:25:41",
+  "ended_at": "2026-03-22T04:11:57",
+  "started_at": "2026-03-22T04:11:56",
   "summary": {
     "failed": 0,
-    "passed": 23,
-    "total": 23
+    "passed": 24,
+    "total": 24
   }
 }

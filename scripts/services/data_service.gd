@@ -178,6 +178,9 @@ func get_all_recipes() -> Array:
 func get_all_items() -> Array:
 	return items_by_id.values()
 
+func get_all_enemies() -> Array:
+	return enemies_by_id.values()
+
 func get_all_locations() -> Array:
 	return locations_by_id.values()
 

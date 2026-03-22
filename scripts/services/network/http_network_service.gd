@@ -37,6 +37,9 @@ func sync_resource_catalog(payload: Dictionary) -> Dictionary:
 func submit_resource_mine(request: Dictionary) -> Dictionary:
 	return _request_json(HTTPClient.METHOD_POST, "/world/resources/mine", request)
 
+func submit_enemy_defeat(request: Dictionary) -> Dictionary:
+	return _request_json(HTTPClient.METHOD_POST, "/combat/enemy_defeat", request)
+
 func _parse_base_url() -> void:
 	_host = ""
 	_port = 80

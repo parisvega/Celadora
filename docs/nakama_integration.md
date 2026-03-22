@@ -21,6 +21,7 @@ Celadora v0.1 does not require Nakama to run. The Nakama path exists so the curr
 - `celadora_submit_combat_event`
 - `celadora_sync_resource_catalog`
 - `celadora_submit_resource_mine`
+- `celadora_submit_enemy_defeat`
 
 These RPCs map to the same transport contract already used by `LocalNetworkService` and `HttpNetworkService`.
 
@@ -32,6 +33,7 @@ It persists one authority record per user in Nakama storage and currently govern
 - Celador Credit settlement
 - resource catalog registration
 - resource mine approval + duplicate prevention
+- enemy defeat settlement + duplicate prevention
 - crafting validation and output grants
 - marketplace buy/sell settlement
 - reward claim de-duplication
@@ -48,8 +50,8 @@ It persists one authority record per user in Nakama storage and currently govern
 1. Stand up a local Nakama instance with JavaScript runtime enabled.
 2. Install the module at `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/nakama/modules/index.js`.
 3. Point the client at Nakama with `CELADORA_NETWORK_PROVIDER=nakama`.
-4. Validate bootstrap, resource mine, reward claim, craft, and market flows.
-5. Move enemy death, loot generation, and combat resolution server-side.
+4. Validate bootstrap, resource mine, enemy defeat, reward claim, craft, and market flows.
+5. Move live enemy HP and combat resolution server-side.
 6. Add session identity, party presence, shard routing, and match/zone authority.
 
 ## Design Constraint

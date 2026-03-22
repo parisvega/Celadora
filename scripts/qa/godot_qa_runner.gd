@@ -174,6 +174,8 @@ func _run_checks() -> void:
 	var ruins_terminal_details: Dictionary = {}
 	var save_roundtrip_details: Dictionary = {}
 	var save_legacy_migration_ok: bool = false
+	var enemy_authority_defeat_ok: bool = false
+	var enemy_authority_details: Dictionary = {}
 	if data_service != null:
 		var required_items := [
 			"dust_blue", "dust_green", "dust_red", "dust_orange",
@@ -364,6 +366,39 @@ func _run_checks() -> void:
 				bool(migrated_world.get("objective_prime_ruins_terminal_complete", false))
 			)
 
+		var enemy_bot: Node = main.get_node_or_null("World/MinerBotA")
+		if enemy_bot == null and world != null:
+			var enemy_scene: PackedScene = load("res://scenes/world/GreegionMinerBot.tscn")
+			if enemy_scene != null:
+				enemy_bot = enemy_scene.instantiate()
+				enemy_bot.name = "QAMinerBot"
+				enemy_bot.set("enemy_instance_id", "qa_miner_bot")
+				world.add_child(enemy_bot)
+				if enemy_bot is Node3D and player is Node3D:
+					(enemy_bot as Node3D).global_position = (player as Node3D).global_position + Vector3(3.0, 0.0, 3.0)
+				await process_frame
+		if enemy_bot != null and inventory_service != null:
+			var enemy_instance_id: String = str(enemy_bot.get("enemy_instance_id"))
+			var before_scrap: int = inventory_service.get_quantity("bot_scrap")
+			var before_credits: int = inventory_service.credits
+			enemy_bot.call("take_damage", 9999.0)
+			for _k in range(4):
+				await process_frame
+			var after_scrap: int = inventory_service.get_quantity("bot_scrap")
+			var after_credits: int = inventory_service.credits
+			var defeated_flag: bool = bool(game_services.call("get_world_flag", "enemy_defeated:%s" % enemy_instance_id, false))
+			var bot_removed: bool = not is_instance_valid(enemy_bot) or enemy_bot.get_parent() == null
+			enemy_authority_details = {
+				"enemy_instance_id": enemy_instance_id,
+				"before_scrap": before_scrap,
+				"after_scrap": after_scrap,
+				"before_credits": before_credits,
+				"after_credits": after_credits,
+				"defeated_flag": defeated_flag,
+				"bot_removed": bot_removed
+			}
+			enemy_authority_defeat_ok = after_scrap > before_scrap and after_credits > before_credits and defeated_flag and bot_removed
+
 	_add_check("required_items_loaded", items_ok, {}, "critical")
 	_add_check("viewmodel_config_loaded", viewmodel_cfg_ok, {}, "critical")
 	_add_check("dust_profiles_loaded", dust_profiles_ok, {}, "critical")
@@ -377,6 +412,7 @@ func _run_checks() -> void:
 	_add_check("ruins_terminal_can_be_primed", ruins_terminal_can_be_primed, ruins_terminal_details, "critical")
 	_add_check("save_load_world_flag_roundtrip", save_load_world_flag_roundtrip, save_roundtrip_details, "critical")
 	_add_check("save_legacy_migration", save_legacy_migration_ok, {}, "critical")
+	_add_check("enemy_authority_defeat_settlement", enemy_authority_defeat_ok, enemy_authority_details, "critical")
 
 	main.queue_free()
 	await process_frame

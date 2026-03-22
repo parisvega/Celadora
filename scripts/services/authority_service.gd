@@ -189,6 +189,32 @@ func mine_resource(resource_payload: Dictionary) -> Dictionary:
 		"credits": int(payload.get("credits", 0))
 	}
 
+func resolve_enemy_defeat(defeat_payload: Dictionary) -> Dictionary:
+	if not _connected:
+		return {"ok": false, "reason": "Authority service is not connected."}
+	var response: Dictionary = _network_service.submit_enemy_defeat({
+		"session_id": _session_id,
+		"enemy": defeat_payload.duplicate(true)
+	})
+	if not response.get("ok", false):
+		return {"ok": false, "reason": str(response.get("error", "Enemy defeat settlement failed."))}
+	var payload: Dictionary = response.get("data", {})
+	_apply_snapshot(payload.get("snapshot", {}))
+	GameServices.log_event("authority.enemy_defeat_settled", {
+		"enemy_instance_id": str(payload.get("enemy_instance_id", "")),
+		"enemy_id": str(payload.get("enemy_id", "")),
+		"grants": payload.get("grants", []).duplicate(true),
+		"credits": int(payload.get("credits", 0))
+	})
+	return {
+		"ok": true,
+		"reason": str(payload.get("reason", "Enemy defeat settled.")),
+		"enemy_instance_id": str(payload.get("enemy_instance_id", "")),
+		"enemy_id": str(payload.get("enemy_id", "")),
+		"grants": payload.get("grants", []).duplicate(true),
+		"credits": int(payload.get("credits", 0))
+	}
+
 func refresh_market() -> Dictionary:
 	if not _connected:
 		return {"ok": false, "reason": "Authority service is not connected."}

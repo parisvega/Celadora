@@ -29,6 +29,9 @@ func sync_resource_catalog(_payload: Dictionary) -> Dictionary:
 func submit_resource_mine(_request: Dictionary) -> Dictionary:
 	return _not_implemented("submit_resource_mine")
 
+func submit_enemy_defeat(_request: Dictionary) -> Dictionary:
+	return _not_implemented("submit_enemy_defeat")
+
 func wrap_client_event(event_type: String, payload: Dictionary, context: Dictionary = {}) -> Dictionary:
 	_event_sequence += 1
 	return {

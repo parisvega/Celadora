@@ -9,6 +9,7 @@ const RPC_SUBMIT_CRAFT: String = "celadora_submit_craft_request"
 const RPC_SUBMIT_COMBAT: String = "celadora_submit_combat_event"
 const RPC_SYNC_RESOURCES: String = "celadora_sync_resource_catalog"
 const RPC_SUBMIT_RESOURCE_MINE: String = "celadora_submit_resource_mine"
+const RPC_SUBMIT_ENEMY_DEFEAT: String = "celadora_submit_enemy_defeat"
 
 var _server_key: String = "defaultkey"
 var _device_id: String = ""
@@ -69,6 +70,9 @@ func sync_resource_catalog(payload: Dictionary) -> Dictionary:
 
 func submit_resource_mine(request: Dictionary) -> Dictionary:
 	return _request_nakama_rpc(RPC_SUBMIT_RESOURCE_MINE, request)
+
+func submit_enemy_defeat(request: Dictionary) -> Dictionary:
+	return _request_nakama_rpc(RPC_SUBMIT_ENEMY_DEFEAT, request)
 
 func _request_nakama_rpc(rpc_id: String, payload: Dictionary) -> Dictionary:
 	if _auth_token.is_empty():

@@ -11,8 +11,10 @@ const STATE_FILE = process.env.CELADORA_AUTHORITY_STATE ?? path.join(ROOT, "arti
 
 const itemDefs = loadJson(path.join(ROOT, "data/items.json"));
 const recipeDefs = loadJson(path.join(ROOT, "data/recipes.json"));
+const enemyDefs = loadJson(path.join(ROOT, "data/enemies.json"));
 const itemMap = new Map(itemDefs.map((item) => [String(item.id), item]));
 const recipeMap = new Map(recipeDefs.map((recipe) => [String(recipe.id), recipe]));
+const enemyMap = new Map(enemyDefs.map((enemy) => [String(enemy.id), enemy]));
 
 let store = loadStore();
 
@@ -75,6 +77,8 @@ function routeRequest(method, pathname, body) {
       appendCombatEvent(body);
       persistStore();
       return ok({ accepted: true });
+    case "POST /combat/enemy_defeat":
+      return handleEnemyDefeat(body);
     default:
       return {
         statusCode: 404,
@@ -92,6 +96,7 @@ function handleSyncState(body) {
     store.resource_catalog = {};
     store.reserved_reward_claims = {};
     store.mined_resource_ids = resourceFlagsToIds(store.player.world_state);
+    store.defeated_enemy_ids = enemyFlagsToIds(store.player.world_state);
     store.state_present = true;
     ensureMarketSeeded();
     persistStore();
@@ -192,6 +197,50 @@ function handleResourceMine(body) {
     item_id: resource.item_id,
     quantity: Number(resource.quantity ?? 1),
     credits: Number(resource.credits ?? 0),
+  });
+}
+
+function handleEnemyDefeat(body) {
+  const enemyBody = isObject(body.enemy) ? body.enemy : {};
+  const enemyInstanceId = typeof enemyBody.enemy_instance_id === "string" ? enemyBody.enemy_instance_id.trim() : "";
+  const enemyId = typeof enemyBody.enemy_id === "string" ? enemyBody.enemy_id.trim() : "";
+  if (!enemyInstanceId) {
+    return fail(400, "Enemy instance ID is required.");
+  }
+  if (!enemyId) {
+    return fail(400, "Enemy ID is required.");
+  }
+  if (store.defeated_enemy_ids[enemyInstanceId]) {
+    return fail(409, "Enemy already defeated.");
+  }
+  const enemyDef = enemyMap.get(enemyId);
+  if (!enemyDef || typeof enemyDef !== "object") {
+    return fail(404, "Unknown enemy ID.");
+  }
+
+  store.defeated_enemy_ids[enemyInstanceId] = Math.floor(Date.now() / 1000);
+  const grants = [];
+  for (const row of enemyDef.drops ?? []) {
+    if (!isObject(row)) {
+      continue;
+    }
+    const itemId = typeof row.item_id === "string" ? row.item_id.trim() : "";
+    const quantity = Math.max(1, Number.parseInt(row.quantity ?? "1", 10));
+    if (!itemId || !itemMap.has(itemId)) {
+      continue;
+    }
+    store.player.inventory[itemId] = Number(store.player.inventory[itemId] ?? 0) + quantity;
+    grants.push({ item_id: itemId, quantity });
+  }
+  const grantedCredits = applyCreditGain(Math.max(0, Number.parseInt(enemyDef.credit_reward ?? "0", 10)));
+  persistStore();
+  return ok({
+    enemy_instance_id: enemyInstanceId,
+    enemy_id: enemyId,
+    grants,
+    credits: grantedCredits,
+    reason: `Salvaged ${enemyId}`,
+    snapshot: economySnapshot(),
   });
 }
 
@@ -453,6 +502,7 @@ function normalizeStore(raw) {
     resource_catalog: isObject(storeIn.resource_catalog) ? deepClone(storeIn.resource_catalog) : {},
     reserved_reward_claims: isObject(storeIn.reserved_reward_claims) ? deepClone(storeIn.reserved_reward_claims) : {},
     mined_resource_ids: isObject(storeIn.mined_resource_ids) ? deepClone(storeIn.mined_resource_ids) : {},
+    defeated_enemy_ids: isObject(storeIn.defeated_enemy_ids) ? deepClone(storeIn.defeated_enemy_ids) : {},
     event_log: Array.isArray(storeIn.event_log) ? deepClone(storeIn.event_log) : [],
   };
 }
@@ -563,6 +613,22 @@ function resourceFlagsToIds(worldState) {
       continue;
     }
     out[resourceId] = Math.floor(Date.now() / 1000);
+  }
+  return out;
+}
+
+function enemyFlagsToIds(worldState) {
+  const out = {};
+  for (const [flagIdRaw, enabledRaw] of Object.entries(worldState || {})) {
+    const flagId = String(flagIdRaw).trim();
+    if (!flagId.startsWith("enemy_defeated:") || !Boolean(enabledRaw)) {
+      continue;
+    }
+    const enemyInstanceId = flagId.slice("enemy_defeated:".length).trim();
+    if (!enemyInstanceId) {
+      continue;
+    }
+    out[enemyInstanceId] = Math.floor(Date.now() / 1000);
   }
   return out;
 }

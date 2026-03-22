@@ -28,8 +28,8 @@ Celadora still runs fully offline by default, but inventory/credits/crafting/mar
    - `/Users/parisvega/Desktop/2 Business/Vega Ventures (100)/Celadora/scripts/dev/stop_authority_server.sh`
 
 Authority scope in this slice:
-- authoritative now: inventory, Celador Credits, crafting outputs, market settlement, resource reward reservation/duplicate prevention
-- still client-simulated: world terrain/resources, enemy simulation, combat hit validation, movement
+- authoritative now: inventory, Celador Credits, crafting outputs, market settlement, resource mine approval, enemy defeat reward settlement
+- still client-simulated: terrain generation, movement, live enemy simulation, combat hit validation
 
 ## Optional Nakama Provider
 Celadora also includes a Nakama-ready transport and runtime module skeleton so the current authority contract can move to RPC/storage without changing gameplay services.
@@ -54,12 +54,14 @@ Nakama scope today:
   - state sync
   - resource catalog sync
   - resource mining approval
+  - enemy defeat settlement
   - reward claims
   - crafting
   - marketplace settlement
   - combat event logging
 - remains optional and is not required for v0.1 runtime
 - does not yet include matchmaking, shard orchestration, enemy/server combat resolution, or movement/session validation
+- does not yet include matchmaking, shard orchestration, live enemy/server combat resolution, or movement/session validation
 
 ## Controls
 - `W/A/S/D`: Move
@@ -194,6 +196,7 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 - Provider seam: `NetworkService` interface + `LocalNetworkService` / `HttpNetworkService` implementations.
 - `AuthorityService` now owns the handoff between local runtime state and authoritative inventory/credits/marketplace mutation flows.
 - Resource mining now syncs a canonical resource catalog into the authority layer, and depleted nodes must be approved there before rewards are granted.
+- Enemy defeats now settle salvage and Celador Credits through authority before the bot is removed locally.
 - Reward claims now carry claim IDs so pickup settlement can be rejected when the same drop is claimed twice.
 - Persistent world progression seam: `GameServices.world_state` (used by ruins-terminal state and future world flags).
 - Economy isolation: disabled `TokenBridge` stubs in `/scripts/economy`.
@@ -244,7 +247,7 @@ First-person viewmodel tuning is also JSON-driven via `/Users/parisvega/Desktop/
 
 ## Next Milestones
 1. **Dedicated server foundation**
-   - Expand the authority slice from inventory/resources into enemy state, combat rewards, and player session state.
+   - Expand the authority slice from enemy defeat settlement into live enemy HP, combat resolution, and player session state.
 2. **Nakama integration**
    - Replace `HttpNetworkService` endpoint targets with Nakama RPC/storage APIs.
    - Add session/auth bootstrap, account identity, and matchmaking hooks.

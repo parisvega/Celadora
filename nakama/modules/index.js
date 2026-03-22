@@ -29,6 +29,9 @@ function InitModule(ctx, logger, nk, initializer) {
   initializer.registerRpc("celadora_submit_resource_mine", function (ctx, logger, nk, payload) {
     return jsonRpc(submitResourceMineRpc(ctx, payload, nk));
   });
+  initializer.registerRpc("celadora_submit_enemy_defeat", function (ctx, logger, nk, payload) {
+    return jsonRpc(submitEnemyDefeatRpc(ctx, payload, nk));
+  });
   logger.info("Celadora Nakama authority module loaded.");
 }
 
@@ -58,6 +61,7 @@ function syncStateRpc(ctx, payload, nk) {
     record.state.resource_catalog = {};
     record.state.reserved_reward_claims = {};
     record.state.mined_resource_ids = resourceFlagsToIds(record.state.world_state);
+    record.state.defeated_enemy_ids = enemyFlagsToIds(record.state.world_state);
     record.statePresent = true;
     ensureMarketSeeded(record.state);
     persistAuthorityRecord(ctx, nk, record.state);
@@ -174,6 +178,57 @@ function submitResourceMineRpc(ctx, payload, nk) {
     item_id: resource.item_id,
     quantity: Number(resource.quantity || 1),
     credits: Number(resource.credits || 0)
+  });
+}
+
+function submitEnemyDefeatRpc(ctx, payload, nk) {
+  ensureUserContext(ctx);
+  var body = parsePayload(payload);
+  var record = loadAuthorityRecord(ctx, nk);
+  var enemyBody = isObject(body.enemy) ? body.enemy : {};
+  var enemyInstanceId = typeof enemyBody.enemy_instance_id === "string" ? enemyBody.enemy_instance_id.trim() : "";
+  var enemyId = typeof enemyBody.enemy_id === "string" ? enemyBody.enemy_id.trim() : "";
+  if (!enemyInstanceId) {
+    return fail("Enemy instance ID is required.");
+  }
+  if (!enemyId) {
+    return fail("Enemy ID is required.");
+  }
+  if (record.state.defeated_enemy_ids[enemyInstanceId]) {
+    return fail("Enemy already defeated.");
+  }
+  var enemyDef = getEnemyDefs()[enemyId];
+  if (!enemyDef) {
+    return fail("Unknown enemy ID.");
+  }
+
+  record.state.defeated_enemy_ids[enemyInstanceId] = Date.now();
+  var grants = [];
+  for (var i = 0; i < (enemyDef.drops || []).length; i++) {
+    var row = enemyDef.drops[i];
+    if (!isObject(row)) {
+      continue;
+    }
+    var itemId = typeof row.item_id === "string" ? row.item_id.trim() : "";
+    var quantity = Math.max(1, Number(row.quantity || 1));
+    if (!itemId || !getItemDefs()[itemId]) {
+      continue;
+    }
+    record.state.inventory[itemId] = Number(record.state.inventory[itemId] || 0) + quantity;
+    grants.push({
+      item_id: itemId,
+      quantity: quantity
+    });
+  }
+  var grantedCredits = applyCreditGain(record.state, Math.max(0, Number(enemyDef.credit_reward || 0)));
+  persistAuthorityRecord(ctx, nk, record.state);
+  return ok({
+    enemy_instance_id: enemyInstanceId,
+    enemy_id: enemyId,
+    grants: grants,
+    credits: grantedCredits,
+    reason: "Salvaged " + enemyId,
+    snapshot: economySnapshot(record.state)
   });
 }
 
@@ -389,6 +444,7 @@ function normalizeState(raw) {
     resource_catalog: isObject(state.resource_catalog) ? deepClone(state.resource_catalog) : {},
     reserved_reward_claims: isObject(state.reserved_reward_claims) ? deepClone(state.reserved_reward_claims) : {},
     mined_resource_ids: isObject(state.mined_resource_ids) ? deepClone(state.mined_resource_ids) : {},
+    defeated_enemy_ids: isObject(state.defeated_enemy_ids) ? deepClone(state.defeated_enemy_ids) : {},
     combat_events: Array.isArray(state.combat_events) ? deepClone(state.combat_events) : []
   };
 }
@@ -603,6 +659,25 @@ function resourceFlagsToIds(worldState) {
   return out;
 }
 
+function enemyFlagsToIds(worldState) {
+  var out = {};
+  for (var flagId in (worldState || {})) {
+    if (!Object.prototype.hasOwnProperty.call(worldState, flagId)) {
+      continue;
+    }
+    var flagName = String(flagId || "").trim();
+    if (flagName.indexOf("enemy_defeated:") !== 0 || !Boolean(worldState[flagId])) {
+      continue;
+    }
+    var enemyInstanceId = flagName.slice("enemy_defeated:".length).trim();
+    if (!enemyInstanceId) {
+      continue;
+    }
+    out[enemyInstanceId] = Date.now();
+  }
+  return out;
+}
+
 function sanitizeStringArray(raw) {
   if (!Array.isArray(raw)) {
     return [];
@@ -655,6 +730,7 @@ function isObject(value) {
 
 var cachedItemDefs = null;
 var cachedRecipeDefs = null;
+var cachedEnemyDefs = null;
 
 function getItemDefs() {
   if (cachedItemDefs !== null) {
@@ -696,4 +772,17 @@ function getRecipeDefs() {
     }
   };
   return cachedRecipeDefs;
+}
+
+function getEnemyDefs() {
+  if (cachedEnemyDefs !== null) {
+    return cachedEnemyDefs;
+  }
+  cachedEnemyDefs = {
+    "greegion_miner_bot": {
+      drops: [{ item_id: "bot_scrap", quantity: 1 }],
+      credit_reward: 10
+    }
+  };
+  return cachedEnemyDefs;
 }

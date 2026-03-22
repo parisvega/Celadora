@@ -2,6 +2,7 @@ extends CharacterBody3D
 
 @export var enemy_id: String = "greegion_miner_bot"
 @export var pickup_scene: PackedScene
+@export var enemy_instance_id: String = ""
 
 var _stats: Dictionary = {}
 var _hp: float = 30.0
@@ -13,6 +14,11 @@ var _health_label: Label3D = null
 var _health_label_refresh_left: float = 0.0
 
 func _ready() -> void:
+	if enemy_instance_id.is_empty():
+		enemy_instance_id = "%s:%s" % [enemy_id, name.to_lower()]
+	if GameServices.get_world_flag(_world_flag_id(), false):
+		queue_free()
+		return
 	add_to_group("enemy_bot")
 	_spawn_position = global_position
 	_load_stats()
@@ -61,6 +67,7 @@ func take_damage(amount: float) -> void:
 	_update_health_label_text()
 	GameServices.log_event("combat.enemy_damaged", {
 		"enemy_id": enemy_id,
+		"enemy_instance_id": enemy_instance_id,
 		"damage": amount,
 		"hp_after": _hp
 	})
@@ -130,23 +137,49 @@ func _attack(player: Node) -> void:
 		})
 
 func _die() -> void:
+	var authority_result: Dictionary = {}
+	if GameServices.authority_service != null and GameServices.authority_service.has_method("resolve_enemy_defeat"):
+		authority_result = GameServices.authority_service.resolve_enemy_defeat({
+			"enemy_instance_id": enemy_instance_id,
+			"enemy_id": enemy_id,
+			"position": [global_position.x, global_position.y, global_position.z]
+		})
+		if not authority_result.get("ok", false):
+			var reason: String = str(authority_result.get("reason", "Enemy defeat failed."))
+			if reason.to_lower().contains("already defeated"):
+				_mark_remote_defeated()
+				return
+			var hud_failure = get_tree().get_first_node_in_group("hud")
+			if hud_failure:
+				hud_failure.push_message(reason)
+			queue_free()
+			return
+
 	GameServices.log_event("combat.enemy_defeated", {
+		"enemy_instance_id": enemy_instance_id,
 		"enemy_id": enemy_id,
-		"drops": _stats.get("drops", []),
-		"credit_reward": int(_stats.get("credit_reward", 0))
+		"drops": authority_result.get("grants", _stats.get("drops", [])),
+		"credit_reward": int(authority_result.get("credits", _stats.get("credit_reward", 0)))
 	})
-	if pickup_scene != null:
-		var drop_index: int = 0
-		for drop in _stats.get("drops", []):
-			var pickup = pickup_scene.instantiate()
-			get_parent().add_child(pickup)
-			pickup.item_id = str(drop.get("item_id", "bot_scrap"))
-			pickup.quantity = int(drop.get("quantity", 1))
-			pickup.credits = int(_stats.get("credit_reward", 0))
-			pickup.claim_source = "enemy:%s:%d" % [enemy_id, get_instance_id()]
-			pickup.claim_id = "%s:drop:%d:%d" % [pickup.claim_source, drop_index, Time.get_ticks_usec()]
-			pickup.global_position = global_position + Vector3(randf_range(-0.6, 0.6), 0.7, randf_range(-0.6, 0.6))
-			drop_index += 1
+	GameServices.set_world_flag(_world_flag_id(), true)
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and authority_result.get("ok", false):
+		var grant_fragments: Array = []
+		for grant in authority_result.get("grants", []):
+			if typeof(grant) != TYPE_DICTIONARY:
+				continue
+			grant_fragments.append("%s x%d" % [str(grant.get("item_id", "loot")), int(grant.get("quantity", 1))])
+		var summary: String = ", ".join(grant_fragments)
+		if summary.is_empty():
+			summary = "salvage secured"
+		var credits: int = int(authority_result.get("credits", 0))
+		if credits > 0:
+			summary += " | +%d CC" % credits
+		hud.push_message(summary)
+	queue_free()
+
+func _mark_remote_defeated() -> void:
+	GameServices.set_world_flag(_world_flag_id(), true)
 	queue_free()
 
 func _create_health_label() -> void:
@@ -170,3 +203,6 @@ func _update_health_label_text() -> void:
 		_health_label.modulate = Color(1.0, 0.9, 0.45, 1.0)
 	else:
 		_health_label.modulate = Color(1.0, 0.52, 0.52, 1.0)
+
+func _world_flag_id() -> String:
+	return "enemy_defeated:%s" % enemy_instance_id
